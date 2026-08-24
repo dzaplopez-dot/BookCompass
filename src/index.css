@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+/*
+ * Tokens de diseño de Book Compass.
+ * Tailwind CSS v4 genera utilidades a partir de estas variables:
+ * bg-paper, text-ink, text-brand-500, font-display, etc.
+ */
+@theme {
+  /* Fondo cálido tipo papel de libro */
+  --color-paper: #faf7f2;
+
+  /* Tinta oscura para textos */
+  --color-ink: #1c1917;
+
+  /* Ámbar de marca (lomo de libro) */
+  --color-brand-100: #fef3c7;
+  --color-brand-500: #d97706;
+  --color-brand-700: #b45309;
+
+  /* Tipografía display para títulos */
+  --font-display: Georgia, 'Times New Roman', serif;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}

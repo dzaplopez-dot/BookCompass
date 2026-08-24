@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Book Compass: libro abierto placeholder (favicon) -->
+  <rect width="64" height="64" rx="14" fill="#1c1917"/>
+  <path d="M14 17a4 4 0 0 1 4-4h10a8 8 0 0 1 4 1.1A8 8 0 0 1 36 13h10a4 4 0 0 1 4 4v30a4 4 0 0 1-4 4H36a8 8 0 0 0-4 1.1A8 8 0 0 0 28 51H18a4 4 0 0 1-4-4Z" fill="#faf7f2"/>
+  <path d="M32 16.5v33" stroke="#b45309" stroke-width="3" stroke-linecap="round"/>
+</svg>
