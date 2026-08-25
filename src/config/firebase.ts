@@ -1,9 +1,8 @@
 /**
  * Inicialización única (singleton perezoso) de los servicios de Firebase.
  *
- * Las instancias se crean bajo demanda mediante funciones proveedoras, lo que:
- * - evita tocar el SDK al importar módulos (mejor para pruebas),
- * - permite inyectar estos proveedores en los servicios (DIP).
+ * Las instancias se crean bajo demanda mediante funciones proveedoras, lo que
+ * evita tocar el SDK al importar módulos y facilita el mocking en pruebas.
  */
 import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';

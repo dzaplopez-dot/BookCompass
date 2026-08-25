@@ -10,9 +10,11 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
+  updateProfile,
   type User,
 } from 'firebase/auth';
 import { getAuthInstance } from '../config/firebase';
@@ -31,10 +33,19 @@ function toDomain(user: User): AppUser {
 
 /** Servicio de autenticación de Book Compass. */
 export class AuthService {
-  /** Registra una cuenta nueva con correo y contraseña. */
-  async signUpWithEmail(email: string, password: string): Promise<AppUser> {
+  /**
+   * Registra una cuenta nueva con correo y contraseña.
+   *
+   * @param email Correo electrónico.
+   * @param password Contraseña (mínimo 6 caracteres según Firebase).
+   * @param displayName Nombre visible opcional; se asigna al perfil de Firebase.
+   */
+  async signUpWithEmail(email: string, password: string, displayName?: string): Promise<AppUser> {
     try {
       const credential = await createUserWithEmailAndPassword(getAuthInstance(), email, password);
+      if (displayName && displayName.trim() !== '') {
+        await updateProfile(credential.user, { displayName: displayName.trim() });
+      }
       return toDomain(credential.user);
     } catch (error) {
       throw normalizeError(error);
@@ -61,6 +72,20 @@ export class AuthService {
     try {
       const credential = await signInWithPopup(getAuthInstance(), new GoogleAuthProvider());
       return toDomain(credential.user);
+    } catch (error) {
+      throw normalizeError(error);
+    }
+  }
+
+  /**
+   * Envía el correo de recuperación de contraseña.
+   *
+   * Nota: con la protección anti-enumeración de Firebase activada, este método
+   * responde con éxito aunque el correo no esté registrado (por privacidad).
+   */
+  async resetPassword(email: string): Promise<void> {
+    try {
+      await sendPasswordResetEmail(getAuthInstance(), email);
     } catch (error) {
       throw normalizeError(error);
     }

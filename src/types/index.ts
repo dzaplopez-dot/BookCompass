@@ -6,6 +6,11 @@
  * contextos, UI) permanezcan desacopladas de Firebase u otro proveedor.
  */
 
+export * from './auth.types';
+export * from './archive-books.types';
+
+import type { UserPreferences } from './auth.types';
+
 /** Función para cancelar una suscripción (patrón observable). */
 export type Unsubscribe = () => void;
 
@@ -27,6 +32,10 @@ export interface UserProfile {
   createdAt: number;
   /** Fecha de la última actualización en milisegundos desde epoch. */
   updatedAt: number;
+  /** Fecha del último inicio de sesión en milisegundos desde epoch. */
+  lastLoginAt?: number | null;
+  /** Preferencias del usuario (notificaciones, géneros favoritos…). */
+  preferences?: UserPreferences;
 }
 
 /** Documento genérico con su identificador inyectado. */

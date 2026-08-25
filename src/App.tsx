@@ -1,19 +1,63 @@
 /**
- * Componente raíz provisional de Book Compass.
+ * Componente raíz de Book Compass.
  *
- * TODO: se sustituirá por el enrutador y las páginas definitivas cuando
- * se implemente la funcionalidad de descubrimiento literario.
+ * Compone la aplicación en tres capas:
+ * 1. `AuthProvider`: estado global de sesión (debe envolver al router para
+ *    que las guardas de ruta puedan consultarlo).
+ * 2. `BrowserRouter`: enrutado del lado cliente.
+ * 3. `Routes`: rutas públicas (login/registro/recuperación) y privadas
+ *    (`/home`), con redirección por defecto a `/login`.
  */
-function App() {
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { PrivateRoute } from './components/common/PrivateRoute';
+import { PublicRoute } from './components/common/PublicRoute';
+import { AuthProvider } from './context/AuthContext';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+
+/** Árbol de rutas de la aplicación. */
+export default function App() {
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-4 px-6 text-center">
-      <h1 className="font-display text-5xl font-bold tracking-tight">Book Compass</h1>
-      <p className="max-w-md text-lg text-stone-600">
-        Configuración inicial completada: React + Vite + TypeScript + TailwindCSS + PWA listas.
-      </p>
-      <small className="text-sm text-stone-400">v0.0.0</small>
-    </main>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <LoginPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicRoute>
+                <RegisterPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <PublicRoute>
+                <ForgotPasswordPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/home"
+            element={
+              <PrivateRoute>
+                <HomePage />
+              </PrivateRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
-
-export default App;

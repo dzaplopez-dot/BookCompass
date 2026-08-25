@@ -2,8 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { loadEnv, type PluginOption } from 'vite';
-import { defineConfig } from 'vitest/config';
+import { loadEnv, type PluginOption, defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 /**
@@ -41,7 +40,6 @@ function firebaseMessagingSwPlugin(env: Record<string, string>): PluginOption {
  *     para servir contenido fresco y caer a caché si no hay conexión.
  * - Cloud Messaging: el SW generado importa `firebase-messaging-sw.js`
  *   (mensajes en segundo plano).
- * - Vitest: pruebas unitarias junto a cada módulo.
  */
 export default defineConfig(({ mode }) => {
   const firebaseEnv = loadEnv(mode, process.cwd(), 'VITE_FIREBASE_');
@@ -107,9 +105,5 @@ export default defineConfig(({ mode }) => {
       }),
       firebaseMessagingSwPlugin(firebaseEnv),
     ],
-    test: {
-      environment: 'node',
-      include: ['src/**/*.test.ts'],
-    },
   };
 });
