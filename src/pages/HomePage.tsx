@@ -9,6 +9,7 @@ import { BookCard } from '../components/books/BookCard';
 import { SearchBar } from '../components/books/SearchBar';
 import { Spinner } from '../components/common/Spinner';
 import { useAuth } from '../hooks/useAuth';
+import { useFavorites } from '../hooks/useFavorites';
 import { analyticsService } from '../services/analytics.service';
 import { archiveBooksService } from '../services/archive-books.service';
 import type { BookSummary } from '../types/archive-books.types';
@@ -23,6 +24,7 @@ function formatDate(timestamp?: number | null): string {
 /** Página privada de inicio y descubrimiento. */
 export default function HomePage() {
   const { user, profile, logout } = useAuth();
+  const { favorites, loading: favoritesLoading } = useFavorites();
 
   // ── Estado de sesión ──────────────────────────────────────────────────────
   const displayName = profile?.displayName ?? user?.displayName ?? user?.email ?? 'lector';
@@ -134,6 +136,27 @@ export default function HomePage() {
               <dd className="mt-1 font-medium">{formatDate(profile?.lastLoginAt)}</dd>
             </div>
           </dl>
+        </section>
+
+        {/* ─── Mis favoritos ─────────────────────────────────────────────── */}
+        <section className="mt-8">
+          <h2 className="mb-4 font-display text-2xl font-bold tracking-tight">Mis favoritos</h2>
+
+          {favoritesLoading ? (
+            <div className="flex justify-center py-8">
+              <Spinner size="md" label="Cargando favoritos…" />
+            </div>
+          ) : favorites.length === 0 ? (
+            <p className="py-6 text-center text-sm text-stone-400">
+              Aún no has guardado ningún libro. Pulsa ★ en una tarjeta para guardarlo.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              {favorites.map((book) => (
+                <BookCard key={book.id} book={book} />
+              ))}
+            </div>
+          )}
         </section>
 
         {/* ─── Descubrimiento ────────────────────────────────────────────── */}

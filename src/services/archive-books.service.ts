@@ -13,19 +13,33 @@
  * - Búsqueda: https://archive.org/advancedsearch.php
  * - Portadas: https://archive.org/services/img/{identifier}
  */
-import type { ArchiveSearchResponse, SearchResult } from '../types/archive-books.types';
-import { mapArchiveDoc } from '../types/archive-books.types';
+import type {
+  ArchiveMetadata,
+  ArchiveSearchResponse,
+  BookDetail,
+  SearchResult,
+} from '../types/archive-books.types';
+import { mapArchiveDetail, mapArchiveDoc } from '../types/archive-books.types';
 import { AppError } from '../utils/errors';
 import { rateLimiter } from './rate-limiter';
 
 /** Endpoint base de búsqueda de Internet Archive. */
 const BASE_URL = 'https://archive.org/advancedsearch.php';
 
+/** Endpoint base de metadatos de un ítem. */
+const METADATA_URL = 'https://archive.org/metadata';
+
 /** Campos solicitados a la API (mínimos para nuestro mapeo). */
 const SEARCH_FIELDS = 'identifier,title,creator,date';
 
-/** Filtro para obtener solo libros (textos). */
-const MEDIATYPE_FILTER = 'mediatype:texts';
+/**
+ * Filtro para obtener solo libros reales.
+ *
+ * - `mediatype:texts`: descarta audio, vídeo, imágenes, etc.
+ * - `collection:inlibrary`: restringe a ítems digitalizados de bibliotecas,
+ *   eliminando "favorites", archivos sueltos y materiales que no son libros.
+ */
+const BOOKS_FILTER = 'mediatype:texts AND collection:inlibrary';
 
 /** Número máximo de resultados por página. */
 const PAGE_SIZE = 12;
@@ -46,8 +60,8 @@ const EMPTY_RESULT_TTL_MS = 1 * 60 * 1_000;
 const MAX_CACHE_ENTRIES = 50;
 
 /** Entrada de caché con marca de expiración. */
-interface CacheEntry {
-  data: SearchResult;
+interface CacheEntry<T> {
+  data: T;
   expiresAt: number;
 }
 
@@ -62,7 +76,7 @@ function cacheKey(query: string, page: number): string {
  * Servicio de búsqueda de libros con rate-limit, caché y reintentos.
  */
 export class ArchiveBooksService {
-  private cache = new Map<string, CacheEntry>();
+  private cache = new Map<string, CacheEntry<unknown>>();
   private ttlMs: number;
 
   /**
@@ -89,7 +103,7 @@ export class ArchiveBooksService {
     const key = cacheKey(trimmed, page);
     const cached = this.cache.get(key);
     if (cached && cached.expiresAt > Date.now()) {
-      return cached.data;
+      return cached.data as SearchResult;
     }
 
     const result = await this.fetchWithRetries(trimmed, page);
@@ -108,8 +122,8 @@ export class ArchiveBooksService {
    */
   private async fetchWithRetries(query: string, page: number): Promise<SearchResult> {
     const start = page * PAGE_SIZE;
-    // Búsqueda por título y autor, filtrada solo a libros
-    const searchQuery = `(${query}) AND ${MEDIATYPE_FILTER}`;
+    // Búsqueda por título y autor, filtrada solo a libros de biblioteca.
+    const searchQuery = `(${query}) AND ${BOOKS_FILTER}`;
     const url = `${BASE_URL}?q=${encodeURIComponent(searchQuery)}&fl[]=${SEARCH_FIELDS.split(',').join('&fl[]=')}&output=json&rows=${PAGE_SIZE}&start=${start}`;
 
     let lastError: unknown;
@@ -206,8 +220,8 @@ export class ArchiveBooksService {
   }
 
   /** Almacena una entrada en caché y expulsa la más antigua si se supera el límite. */
-  private store(key: string, entry: CacheEntry): void {
-    this.cache.set(key, entry);
+  private store<T>(key: string, entry: CacheEntry<T>): void {
+    this.cache.set(key, entry as CacheEntry<unknown>);
 
     if (this.cache.size > MAX_CACHE_ENTRIES) {
       const oldestKey = this.cache.keys().next().value;
@@ -215,6 +229,120 @@ export class ArchiveBooksService {
         this.cache.delete(oldestKey);
       }
     }
+  }
+
+  /**
+   * Obtiene el detalle completo de un libro por su identificador.
+   *
+   * @param identifier Identificador del ítem en Internet Archive.
+   * @returns Detalle normalizado del libro.
+   * @throws AppError si la petición falla tras los reintentos.
+   */
+  async getBookDetail(identifier: string): Promise<BookDetail> {
+    const trimmed = identifier.trim();
+    if (trimmed.length === 0) {
+      throw new AppError(
+        'archive/unexpected',
+        'Falta el identificador del libro. Inténtalo de nuevo.',
+      );
+    }
+
+    const key = `detail::${trimmed.toLowerCase()}`;
+    const cached = this.cache.get(key);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data as BookDetail;
+    }
+
+    const result = await this.fetchDetailWithRetries(trimmed);
+    this.store<BookDetail>(key, { data: result, expiresAt: Date.now() + this.ttlMs });
+
+    return result;
+  }
+
+  /**
+   * Realiza la petición de metadatos con reintentos (misma política que búsqueda).
+   */
+  private async fetchDetailWithRetries(identifier: string): Promise<BookDetail> {
+    const url = `${METADATA_URL}/${encodeURIComponent(identifier)}`;
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        return await rateLimiter.enqueue(() => this.executeDetailRequest(url));
+      } catch (error) {
+        lastError = error;
+
+        if (error instanceof AppError) {
+          if (error.code === 'archive/too-many-requests') {
+            const waitMs = parseRetryAfter(error) ?? BASE_RETRY_DELAY_MS * 2 ** attempt;
+            await sleep(waitMs);
+            continue;
+          }
+          if (error.code === 'archive/unavailable' || error.code === 'app/network-error') {
+            await sleep(BASE_RETRY_DELAY_MS * 2 ** attempt);
+            continue;
+          }
+        }
+
+        throw error;
+      }
+    }
+
+    throw lastError instanceof AppError
+      ? lastError
+      : new AppError('app/unknown', 'Ha ocurrido un error inesperado. Inténtalo de nuevo.');
+  }
+
+  /** Ejecuta una petición HTTP individual de metadatos contra la API. */
+  private async executeDetailRequest(url: string): Promise<BookDetail> {
+    let response: Response;
+
+    try {
+      response = await fetch(url, { headers: { Accept: 'application/json' } });
+    } catch {
+      throw new AppError('app/network-error', 'Error de red. Comprueba tu conexión a internet.');
+    }
+
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('retry-after');
+      throw new AppError(
+        'archive/too-many-requests',
+        'Demasiadas peticiones. Inténtalo de nuevo más tarde.',
+        retryAfter,
+      );
+    }
+    if (response.status >= 500) {
+      throw new AppError(
+        'archive/unavailable',
+        'El servicio de Internet Archive no está disponible en este momento.',
+      );
+    }
+    if (response.status === 404) {
+      throw new AppError('archive/unexpected', 'No se encontró el libro solicitado.');
+    }
+    if (!response.ok) {
+      throw new AppError(
+        'archive/unexpected',
+        `Error inesperado de Internet Archive (código ${response.status}).`,
+      );
+    }
+
+    let json: unknown;
+    try {
+      json = await response.json();
+    } catch {
+      throw new AppError(
+        'archive/unavailable',
+        'La respuesta de Internet Archive no tiene un formato válido.',
+      );
+    }
+
+    const metadata = (json as { metadata?: ArchiveMetadata }).metadata;
+    if (!metadata || typeof metadata !== 'object') {
+      throw new AppError('archive/unexpected', 'El libro no dispone de metadatos completos.');
+    }
+
+    return mapArchiveDetail(metadata);
   }
 }
 

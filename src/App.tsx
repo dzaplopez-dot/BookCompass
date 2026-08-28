@@ -12,6 +12,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { PrivateRoute } from './components/common/PrivateRoute';
 import { PublicRoute } from './components/common/PublicRoute';
 import { AuthProvider } from './context/AuthContext';
+import { FavoritesProvider } from './context/FavoritesContext';
+import BookDetailPage from './pages/BookDetailPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -21,43 +23,53 @@ import RegisterPage from './pages/RegisterPage';
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <LoginPage />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <PublicRoute>
-                <RegisterPage />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/forgot-password"
-            element={
-              <PublicRoute>
-                <ForgotPasswordPage />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/home"
-            element={
-              <PrivateRoute>
-                <HomePage />
-              </PrivateRoute>
-            }
-          />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <FavoritesProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <LoginPage />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <PublicRoute>
+                  <RegisterPage />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/forgot-password"
+              element={
+                <PublicRoute>
+                  <ForgotPasswordPage />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/home"
+              element={
+                <PrivateRoute>
+                  <HomePage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/books/:id"
+              element={
+                <PrivateRoute>
+                  <BookDetailPage />
+                </PrivateRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </FavoritesProvider>
     </AuthProvider>
   );
 }

@@ -8,6 +8,7 @@
 
 export * from './auth.types';
 export * from './archive-books.types';
+export * from './favorites.types';
 
 import type { UserPreferences } from './auth.types';
 
@@ -38,8 +39,19 @@ export interface UserProfile {
   preferences?: UserPreferences;
 }
 
-/** Documento genérico con su identificador inyectado. */
+/** Documeno genérico con su identificador inyectado. */
 export type WithId = { id: string };
+
+/** Datos mínimos de un libro guardados como favorito. */
+export interface FavoriteBook {
+  id: string;
+  title: string;
+  authors: string[];
+  firstPublishYear: number | null;
+  coverUrl: string | null;
+  /** Marca de tiempo de cuándo se guardó (ms desde epoch). */
+  addedAt: number;
+}
 
 /** Payload simplificado y agnóstico de un mensaje push (FCM). */
 export interface FcmPayload {

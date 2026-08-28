@@ -39,6 +39,14 @@ comentarios y documentación: **español**.
 - **Tokens de diseño** (`src/index.css`): `--color-paper #faf7f2`,
   `--color-ink #1c1917`, marca ámbar `brand-500 #d97706`, `--font-display`
   Georgia serif. Estilos mobile-first.
+- **Imágenes de portada**: componente `components/books/BookCover.tsx` con
+  `<picture>` (AVIF → WebP → JPEG), `loading="lazy"`, `decoding="async"` y
+  dimensiones fijas (aspect-ratio 2/3, width/height) contra layout shift.
+  Hoy Internet Archive solo sirve JPEG 180×273 px (`services/img`), así que
+  WebP/AVIF llegan como `null`; la construcción de URLs está centralizada en
+  `getCoverUrls()` (`types/archive-books.types.ts`) para apuntar a un futuro
+  CDN/proxy propio sin romper el mapeo. Sin dependencias de conversión ni
+  infraestructura de imágenes en esta fase (ver pendientes).
 - **Firebase**: proyecto `bookcompass-e9bad`, región `us-central1`. Credenciales
   reales en `.env.local` (ignorado por git; plantilla en `.env.example`).
   Reglas Firestore: solo el dueño lee/escribe `users/{userId}`. El service
@@ -52,17 +60,20 @@ comentarios y documentación: **español**.
 src/
 ├── config/       env.ts (validación fail-fast de VITE_FIREBASE_*), firebase.ts (singletons lazy)
 ├── context/      AuthContext.tsx + auth-context.ts (sesión, perfil, errores)
-├── hooks/        useAuth.ts (lanza si se usa fuera del provider)
-├── services/     auth · firestore (CRUD genérico + perfiles) · messaging · analytics
+│                 FavoritesContext.tsx + favorites-context.ts (favoritos)
+├── hooks/        useAuth.ts · useFavorites.ts (lanzan si se usan fuera de su provider)
+├── services/     auth · firestore (CRUD genérico + perfiles) · messaging · analytics · favorites
+├── components/books/  BookCard · BookCover (imagen responsiva) · SearchBar · FavoriteButton
 ├── components/common/  Spinner · PrivateRoute (/login si no hay sesión) · PublicRoute (/home si hay sesión)
-├── pages/        LoginPage · RegisterPage · ForgotPasswordPage · HomePage (placeholder)
+├── pages/        LoginPage · RegisterPage · ForgotPasswordPage · HomePage · BookDetailPage
 ├── types/        dominio puro sin dependencias del SDK
 └── utils/        errors.ts (AppError/normalizeError) · validation.ts (email/password)
 ```
 
 Rutas: `/login`, `/register`, `/forgot-password` (públicas) · `/home` (privada)
-· fallback → `/login`. Al login/registro: upsert de perfil en Firestore +
-`lastLoginAt` + evento de analítica.
+· `/books/:id` (privada, detalle de libro) · fallback → `/login`. Al
+login/registro: upsert de perfil en Firestore + `lastLoginAt` + evento de
+analítica. Favoritos en `users/{uid}/favorites` (ver «Pendiente manual»).
 
 ## Estado actual (2026-08-24)
 
@@ -76,8 +87,28 @@ Rutas: `/login`, `/register`, `/forgot-password` (públicas) · `/home` (privada
   reutilizable; SearchBar con debounce 450 ms; BookCard con portada; HomePage
   con grid, paginación "Cargar más" y estados. Formato/lint/build verdes.
   **Pendiente: prueba manual de la usuaria.**
+- ✅ Fase 5 — Detalle de libro + Favoritos (código listo, en desarrollo):
+  - Detalle: `types` (`BookDetail` + `mapArchiveDetail`), `getBookDetail()` en
+    `archive-books.service.ts` (endpoint `metadata/{id}`), `pages/BookDetailPage.tsx`
+    con ruta `/books/:id`, BookCard clicable.
+  - Favoritos: `services/favorites.service.ts` (`users/{uid}/favorites`),
+    `context/FavoritesContext.tsx` + `hooks/useFavorites.ts`, botón ★ en tarjeta
+    y detalle, sección "Mis favoritos" en HomePage.
+  - Formato/lint/build verdes. **Pendiente: aplicar regla Firestore de favoritos
+    en Firebase Console + prueba manual.**
 - 🗑️ Esta misma sesión se eliminó TODO el testing (16 archivos _.test._,
   bloque test de vite.config, scripts y devDeps vitest/jsdom/@testing-library).
+
+## Pendiente manual (Firebase Console)
+
+Las reglas de Firestore viven en Firebase Console (no versionadas aún en el repo).
+Para que los favoritos funcionen, añadir a las reglas:
+
+```js
+match /users/{userId}/favorites/{favoriteId} {
+  allow read, write: if request.auth != null && request.auth.uid == userId;
+}
+```
 
 ## Siguientes pasos
 
@@ -92,6 +123,14 @@ Rutas: `/login`, `/register`, `/forgot-password` (públicas) · `/home` (privada
    directa con el token de la integración `bookcompass-docs`.
 2. **Fase 4 — Internet Archive Books API** (código listo, pendiente prueba manual):
    - `types/archive-books.types.ts` + `services/rate-limiter.ts` + `services/archive-books.service.ts`
-   - `components/books/BookCard.tsx` + `components/books/SearchBar.tsx`
+   - `components/books/BookCard.tsx` + `components/books/BookCover.tsx` + `components/books/SearchBar.tsx`
    - `pages/HomePage.tsx` evolucionada con búsqueda, grid y paginación
    - Verificar: búsqueda funcional, portadas, caché, debounce, errores en español, "Cargar más".
+3. **Fase 5 — Detalle de libro + Favoritos** (código listo, pendiente reglas + prueba manual):
+   - Aplicar regla Firestore de favoritos en Firebase Console (ver «Pendiente manual»).
+   - Verificar: clic en BookCard → detalle; ★ guardar/quitar; "Mis favoritos" en Home.
+4. **Pendiente (futuro, fuera de MVP) — CDN/proxy propio de imágenes**:
+   - Internet Archive solo sirve las portadas en JPEG 180×273. Para AVIF/WebP de
+     alta resolución haría falta un backend/proxy que descargue y convierta.
+     `BookCover` y `getCoverUrls()` ya están preparados: basta rellenar
+     `coverUrlWebp`/`coverUrlAvif` y añadir un `<source>` en `<picture>`.
