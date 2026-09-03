@@ -19,7 +19,7 @@ import type {
   BookDetail,
   SearchResult,
 } from '../types/archive-books.types';
-import { mapArchiveDetail, mapArchiveDoc } from '../types/archive-books.types';
+import { mapArchiveDetail, mapArchiveDoc, toGenreQuery } from '../types/archive-books.types';
 import { AppError } from '../utils/errors';
 import { rateLimiter } from './rate-limiter';
 
@@ -115,15 +115,136 @@ export class ArchiveBooksService {
   }
 
   /**
+   * Busca libros recomendados a partir de los géneros favoritos del usuario.
+   *
+   * Construye una query de Internet Archive que filtra por los subjects
+   * correspondientes a los géneros (`toGenreQuery`) y aplica el mismo
+   * filtro de libros reales del proyecto.
+   *
+   * @param genreIds Identificadores de género (`LITERARY_GENRES[].id`).
+   * @param page     Página deseada (0-indexed; por defecto 0).
+   * @returns Resultado paginado con libros normalizados.
+   * @throws AppError si la petición falla tras los reintentos.
+   */
+  async searchByGenres(genreIds: string[], page = 0): Promise<SearchResult> {
+    const genreClause = toGenreQuery(genreIds);
+    if (genreClause.length === 0) {
+      return { total: 0, page: 0, results: [] };
+    }
+
+    const key = `genres::${[...genreIds].sort().join(',')}::${page}`;
+    const cached = this.cache.get(key);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data as SearchResult;
+    }
+
+    const result = await this.fetchGenresWithRetries(genreClause, page);
+
+    const ttl = result.results.length === 0 ? EMPTY_RESULT_TTL_MS : this.ttlMs;
+    this.store(key, { data: result, expiresAt: Date.now() + ttl });
+
+    return result;
+  }
+
+  /**
+   * Busca libros relacionados con una ciudad o lugar.
+   *
+   * Busca en Internet Archive aquellos ítems cuyo título o subject mencione
+   * el nombre de la ciudad, combinado con el filtro de libros reales del
+   * proyecto. Se usa para la vista «Libros cerca de ti».
+   *
+   * @param cityName Nombre de la ciudad/lugar a buscar.
+   * @param page     Página deseada (0-indexed; por defecto 0).
+   * @returns Resultado paginado con libros normalizados.
+   * @throws AppError si la petición falla tras los reintentos.
+   */
+  async searchBooksByCity(cityName: string, page = 0): Promise<SearchResult> {
+    const city = cityName.trim();
+    if (city.length === 0) {
+      return { total: 0, page: 0, results: [] };
+    }
+
+    // Normaliza el nombre: minúsculas sin acentos para una clave y búsqueda
+    // estable. No altera la query enviada a la API (mantiene legibilidad).
+    const normalized = city
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    const key = `city::${normalized}::${page}`;
+
+    const cached = this.cache.get(key);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data as SearchResult;
+    }
+
+    const result = await this.fetchWithRetries(city, page, 'city');
+
+    const ttl = result.results.length === 0 ? EMPTY_RESULT_TTL_MS : this.ttlMs;
+    this.store(key, { data: result, expiresAt: Date.now() + ttl });
+
+    return result;
+  }
+
+  /**
+   * Realiza una petición por géneros con reintentos (misma política que la
+   * búsqueda libre: 429 respeta Retry-After; 5xx/red usa backoff exponencial).
+   */
+  private async fetchGenresWithRetries(genreClause: string, page: number): Promise<SearchResult> {
+    const start = page * PAGE_SIZE;
+    const searchQuery = `${genreClause} AND ${BOOKS_FILTER}`;
+    const url = `${BASE_URL}?q=${encodeURIComponent(searchQuery)}&fl[]=${SEARCH_FIELDS.split(',').join('&fl[]=')}&output=json&rows=${PAGE_SIZE}&start=${start}`;
+
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        return await rateLimiter.enqueue(() => this.executeRequest(url));
+      } catch (error) {
+        lastError = error;
+
+        if (error instanceof AppError) {
+          if (error.code === 'archive/too-many-requests') {
+            const waitMs = parseRetryAfter(error) ?? BASE_RETRY_DELAY_MS * 2 ** attempt;
+            await sleep(waitMs);
+            continue;
+          }
+          if (error.code === 'archive/unavailable' || error.code === 'app/network-error') {
+            await sleep(BASE_RETRY_DELAY_MS * 2 ** attempt);
+            continue;
+          }
+        }
+
+        throw error;
+      }
+    }
+
+    throw lastError instanceof AppError
+      ? lastError
+      : new AppError('app/unknown', 'Ha ocurrido un error inesperado. Inténtalo de nuevo.');
+  }
+
+  /**
    * Realiza la petición a Internet Archive con reintentos inteligentes.
    *
    * - 429: respeta `Retry-After` (cap 10 s), hasta 3 intentos.
    * - 5xx / errores de red: backoff exponencial (1 s → 2 s → 4 s).
+   *
+   * @param query Término a buscar.
+   * @param page  Página deseada (0-indexed).
+   * @param mode  `'free'` (por defecto) busca en título/autor; `'city'` busca
+   *              en título y subject (para la vista de libros cerca).
    */
-  private async fetchWithRetries(query: string, page: number): Promise<SearchResult> {
+  private async fetchWithRetries(
+    query: string,
+    page: number,
+    mode: 'free' | 'city' = 'free',
+  ): Promise<SearchResult> {
     const start = page * PAGE_SIZE;
     // Búsqueda por título y autor, filtrada solo a libros de biblioteca.
-    const searchQuery = `(${query}) AND ${BOOKS_FILTER}`;
+    const searchQuery =
+      mode === 'city'
+        ? `(title:(${query}) OR subject:(${query})) AND ${BOOKS_FILTER}`
+        : `(${query}) AND ${BOOKS_FILTER}`;
     const url = `${BASE_URL}?q=${encodeURIComponent(searchQuery)}&fl[]=${SEARCH_FIELDS.split(',').join('&fl[]=')}&output=json&rows=${PAGE_SIZE}&start=${start}`;
 
     let lastError: unknown;

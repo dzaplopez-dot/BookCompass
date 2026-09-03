@@ -8,6 +8,7 @@
  * - Búsqueda: https://archive.org/advancedsearch.php
  * - Portadas: https://archive.org/services/img/{identifier}
  */
+import { LITERARY_GENRES } from './auth.types';
 
 /**
  * Documento crudo tal como lo devuelve la API de Internet Archive en
@@ -321,4 +322,36 @@ function toPageCount(raw: unknown): number | null {
     value = Number.isNaN(parsed) ? null : parsed;
   }
   return value !== null && value > 0 ? Math.floor(value) : null;
+}
+
+/**
+ * Traduce una lista de identificadores de género (`LITERARY_GENRES[].id`)
+ * a los keywords de Internet Archive que los representan.
+ */
+export function toGenreKeywords(genreIds: string[]): string[] {
+  const keywords = new Set<string>();
+  for (const genreId of genreIds) {
+    const genre = LITERARY_GENRES.find((candidate) => candidate.id === genreId);
+    if (genre) {
+      for (const keyword of genre.keywords) {
+        keywords.add(keyword);
+      }
+    }
+  }
+  return [...keywords];
+}
+
+/**
+ * Construye una cláusula `subject:(...)` de Internet Archive a partir de
+ * los géneros seleccionados, lista para combinar con el filtro de libros.
+ *
+ * Ejemplo: `subject:("Fiction" OR "Novela" OR "Mystery")`.
+ */
+export function toGenreQuery(genreIds: string[]): string {
+  const keywords = toGenreKeywords(genreIds);
+  if (keywords.length === 0) {
+    return '';
+  }
+  const quoted = keywords.map((keyword) => `"${keyword.replace(/"/g, '')}"`).join(' OR ');
+  return `subject:(${quoted})`;
 }

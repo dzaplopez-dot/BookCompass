@@ -4,12 +4,14 @@
  * Muestra un saludo personalizado y una sección de búsqueda que conecta
  * con Internet Archive a través de {@link archiveBooksService}.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { BookCard } from '../components/books/BookCard';
 import { SearchBar } from '../components/books/SearchBar';
 import { Spinner } from '../components/common/Spinner';
 import { useAuth } from '../hooks/useAuth';
 import { useFavorites } from '../hooks/useFavorites';
+import { useGenres } from '../hooks/useGenres';
 import { analyticsService } from '../services/analytics.service';
 import { archiveBooksService } from '../services/archive-books.service';
 import type { BookSummary } from '../types/archive-books.types';
@@ -25,9 +27,45 @@ function formatDate(timestamp?: number | null): string {
 export default function HomePage() {
   const { user, profile, logout } = useAuth();
   const { favorites, loading: favoritesLoading } = useFavorites();
+  const { genres, isValid, loading: genresLoading } = useGenres();
 
   // ── Estado de sesión ──────────────────────────────────────────────────────
   const displayName = profile?.displayName ?? user?.displayName ?? user?.email ?? 'lector';
+
+  // ── Estado de recomendaciones por géneros ────────────────────────────────
+  const [recommendations, setRecommendations] = useState<BookSummary[]>([]);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+  const [recommendationsError, setRecommendationsError] = useState<string | null>(null);
+
+  // Carga recomendaciones según los géneros del usuario; se recarga al
+  // cambiar la selección si esta es válida. El render decide qué mostrar
+  // cuando la selección no es válida, sin necesidad de vaciar el estado.
+  useEffect(() => {
+    if (!isValid) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadRecommendations(): Promise<void> {
+      setRecommendationsLoading(true);
+      setRecommendationsError(null);
+      try {
+        const response = await archiveBooksService.searchByGenres(genres, 0);
+        if (!cancelled) setRecommendations(response.results.slice(0, 10));
+      } catch (caught) {
+        if (!cancelled) setRecommendationsError(normalizeError(caught).message);
+      } finally {
+        if (!cancelled) setRecommendationsLoading(false);
+      }
+    }
+
+    void loadRecommendations();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [genres, isValid]);
 
   // ── Estado de búsqueda ────────────────────────────────────────────────────
   const [query, setQuery] = useState('');
@@ -105,13 +143,33 @@ export default function HomePage() {
       <header className="border-b border-stone-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
           <span className="font-display text-xl font-bold">🧭 Book Compass</span>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium transition hover:bg-stone-50"
-          >
-            Cerrar sesión
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/cerca"
+              className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium transition hover:bg-stone-50"
+            >
+              📍 Cerca
+            </Link>
+            <Link
+              to="/map"
+              className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium transition hover:bg-stone-50"
+            >
+              🗺️ Mapa
+            </Link>
+            <Link
+              to="/perfil"
+              className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium transition hover:bg-stone-50"
+            >
+              👤 Perfil
+            </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium transition hover:bg-stone-50"
+            >
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </header>
 
@@ -136,6 +194,47 @@ export default function HomePage() {
               <dd className="mt-1 font-medium">{formatDate(profile?.lastLoginAt)}</dd>
             </div>
           </dl>
+        </section>
+
+        {/* ─── Recomendado para ti ─────────────────────────────────────── */}
+        <section className="mt-8">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-display text-2xl font-bold tracking-tight">Recomendado para ti</h2>
+            <Link to="/onboarding" className="text-sm font-semibold text-brand-700 hover:underline">
+              Configurar géneros
+            </Link>
+          </div>
+
+          {genresLoading ? (
+            <div className="flex justify-center py-8">
+              <Spinner size="md" label="Cargando tus gustos…" />
+            </div>
+          ) : !isValid ? (
+            <p className="py-6 text-center text-sm text-stone-400">
+              Elige al menos 3 géneros para recibir recomendaciones personalizadas.
+            </p>
+          ) : recommendationsLoading ? (
+            <div className="flex justify-center py-8">
+              <Spinner size="md" label="Buscando recomendaciones…" />
+            </div>
+          ) : recommendationsError ? (
+            <p
+              role="alert"
+              className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              {recommendationsError}
+            </p>
+          ) : recommendations.length === 0 ? (
+            <p className="py-6 text-center text-sm text-stone-400">
+              Todavía no hay recomendaciones para tus géneros.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              {recommendations.map((book) => (
+                <BookCard key={book.id} book={book} />
+              ))}
+            </div>
+          )}
         </section>
 
         {/* ─── Mis favoritos ─────────────────────────────────────────────── */}

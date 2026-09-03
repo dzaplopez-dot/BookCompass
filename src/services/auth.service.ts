@@ -19,7 +19,7 @@ import {
 } from 'firebase/auth';
 import { getAuthInstance } from '../config/firebase';
 import type { AppUser, Unsubscribe } from '../types';
-import { normalizeError } from '../utils/errors';
+import { AppError, normalizeError } from '../utils/errors';
 
 /** Convierte un usuario del SDK al tipo de dominio. */
 function toDomain(user: User): AppUser {
@@ -95,6 +95,38 @@ export class AuthService {
   async signOut(): Promise<void> {
     try {
       await firebaseSignOut(getAuthInstance());
+    } catch (error) {
+      throw normalizeError(error);
+    }
+  }
+
+  /**
+   * Actualiza el nombre visible del usuario autenticado.
+   *
+   * Persiste el cambio en Firebase Auth (lo que ven los proveedores) y
+   * devuelve el usuario actualizado del dominio para propagar al perfil.
+   *
+   * @param displayName Nuevo nombre visible; se recorta y debe ser no vacío.
+   * @throws AppError si falla la actualización o el nombre es inválido.
+   */
+  async updateDisplayName(displayName: string): Promise<AppUser> {
+    const trimmed = displayName.trim();
+    if (trimmed.length === 0) {
+      throw new AppError(
+        'profile/invalid-name',
+        'El nombre no puede estar vacío. Escribe tu nombre visible.',
+      );
+    }
+
+    const auth = getAuthInstance();
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new AppError('auth/no-user', 'No hay una sesión activa.');
+    }
+
+    try {
+      await updateProfile(currentUser, { displayName: trimmed });
+      return toDomain(currentUser);
     } catch (error) {
       throw normalizeError(error);
     }

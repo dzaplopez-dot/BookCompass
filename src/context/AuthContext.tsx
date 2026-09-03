@@ -25,6 +25,7 @@ import type {
   AuthContextValue,
   LoginCredentials,
   RegisterData,
+  UpdateProfileData,
   UserProfile,
 } from '../types';
 import { normalizeError } from '../utils/errors';
@@ -155,6 +156,28 @@ export function AuthProvider({ children }: AuthProviderProps): ReactElement {
     }
   }, []);
 
+  /**
+   * Actualiza los datos editables del perfil (nombre visible) y propaga el
+   * cambio tanto a Firebase Auth como a Firestore, refrescando el estado local.
+   */
+  const updateProfile = useCallback(async (data: UpdateProfileData) => {
+    setError(null);
+    try {
+      const updatedUser = await authService.updateDisplayName(data.displayName);
+      if (updatedUser) {
+        await firestoreService.update('users', updatedUser.uid, { displayName: data.displayName });
+        setUser(updatedUser);
+        setProfile((previous) =>
+          previous ? { ...previous, displayName: data.displayName } : previous,
+        );
+      }
+      analyticsService.track('profile_updated');
+    } catch (caught) {
+      setError(normalizeError(caught).message);
+      throw caught;
+    }
+  }, []);
+
   const clearError = useCallback(() => setError(null), []);
 
   const value = useMemo<AuthContextValue>(
@@ -169,6 +192,7 @@ export function AuthProvider({ children }: AuthProviderProps): ReactElement {
       register,
       logout,
       resetPassword,
+      updateProfile,
       clearError,
     }),
     [
@@ -181,6 +205,7 @@ export function AuthProvider({ children }: AuthProviderProps): ReactElement {
       register,
       logout,
       resetPassword,
+      updateProfile,
       clearError,
     ],
   );

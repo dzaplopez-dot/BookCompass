@@ -75,7 +75,8 @@ export default function RegisterPage() {
         email,
         password,
       });
-      navigate('/home', { replace: true });
+      // Tras crear la cuenta se personaliza la app eligiendo géneros.
+      navigate('/onboarding', { replace: true });
     } catch {
       // El mensaje amigable ya quedó en `error` (contexto).
     } finally {

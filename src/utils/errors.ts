@@ -17,6 +17,15 @@ const AUTH_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   'auth/network-request-failed': 'Error de red. Comprueba tu conexión.',
 };
 
+/** Mensajes amigables (español) para códigos conocidos de Cloud Firestore. */
+const FIRESTORE_ERROR_MESSAGES: Readonly<Record<string, string>> = {
+  'permission-denied': 'No tienes permisos para acceder a estos datos todavía.',
+  'not-found': 'No se encontró el dato solicitado.',
+  unavailable: 'El servicio de datos no está disponible en este momento.',
+  'deadline-exceeded': 'El servicio de datos tardó demasiado en responder.',
+  'resource-exhausted': 'Se alcanzó el límite de peticiones al servicio de datos.',
+};
+
 /** Mensaje por defecto cuando no hay traducción disponible. */
 const FALLBACK_MESSAGE = 'Ha ocurrido un error inesperado. Inténtalo de nuevo.';
 
@@ -62,6 +71,6 @@ export function normalizeError(error: unknown): AppError {
     return error;
   }
   const code = extractCode(error);
-  const message = AUTH_ERROR_MESSAGES[code] ?? FALLBACK_MESSAGE;
+  const message = AUTH_ERROR_MESSAGES[code] ?? FIRESTORE_ERROR_MESSAGES[code] ?? FALLBACK_MESSAGE;
   return new AppError(code, message, error);
 }

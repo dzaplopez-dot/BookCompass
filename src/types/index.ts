@@ -9,6 +9,7 @@
 export * from './auth.types';
 export * from './archive-books.types';
 export * from './favorites.types';
+export * from './book-marker.types';
 
 import type { UserPreferences } from './auth.types';
 
