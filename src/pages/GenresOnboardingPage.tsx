@@ -7,7 +7,7 @@
  * y navega a `/home`.
  */
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { GenreSelector } from '../components/home/GenreSelector';
 import { Spinner } from '../components/common/Spinner';
 import { useGenres } from '../hooks/useGenres';
@@ -61,56 +61,86 @@ export default function GenresOnboardingPage() {
   }
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-paper px-4 py-10">
-      <section className="w-full max-w-xl rounded-2xl border border-stone-200 bg-white p-8 shadow-sm">
-        <h1 className="font-display text-3xl font-bold tracking-tight">Tus géneros favoritos</h1>
-        <p className="mt-2 text-sm text-stone-500">
-          Elige entre <strong>{MIN_GENRES}</strong> y <strong>{MAX_GENRES}</strong> géneros para
-          personalizar tus recomendaciones.
+    <main className="min-h-svh bg-background px-5 pb-36 pt-8 md:px-10">
+      <div className="mx-auto w-full max-w-xl">
+        {/* ─── Paso 2 de 3 ─────────────────────────────────────────── */}
+        <div className="flex items-center justify-between">
+          <Link
+            to="/home"
+            aria-label="Volver"
+            className="text-on-surface transition hover:opacity-70 active:scale-95"
+          >
+            <span aria-hidden="true" className="material-symbols-outlined text-3xl">
+              arrow_back
+            </span>
+          </Link>
+          <div aria-hidden="true" className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-outline-variant" />
+            <span className="h-2.5 w-10 rounded-full bg-primary-container" />
+            <span className="h-2.5 w-2.5 rounded-full bg-outline-variant" />
+          </div>
+          <span className="w-8" aria-hidden="true" />
+        </div>
+        <p className="mt-4 text-center text-sm font-medium uppercase tracking-widest text-on-surface-variant">
+          Paso 2 de 3
         </p>
 
-        {/* Progreso de validación en tiempo real */}
-        <p
-          role="status"
-          aria-live="polite"
-          className={`mt-4 rounded-lg px-4 py-2 text-sm font-medium ${
-            selectionIsValid ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-          }`}
-        >
-          {selection.length < MIN_GENRES
-            ? `Faltan ${MIN_GENRES - selection.length} géneros para continuar (mínimo ${MIN_GENRES}).`
-            : selection.length > MAX_GENRES
-              ? `Has elegido demasiados: máximo ${MAX_GENRES}.`
-              : `¡Perfecto! Seleccionaste ${selection.length} de ${MAX_GENRES} géneros.`}
+        <h1 className="mt-6 text-center font-display text-4xl font-bold leading-tight text-primary">
+          Tus gustos literarios
+        </h1>
+        <p className="mt-3 text-center text-base leading-relaxed text-on-surface-variant">
+          Selecciona al menos {MIN_GENRES} géneros favoritos para personalizar tus recomendaciones.
         </p>
 
-        <div className="mt-5">
+        <div className="mt-8">
           <GenreSelector selection={selection} onToggle={handleToggle} disabled={saving} />
         </div>
 
         {error ? (
           <p
             role="alert"
-            className="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700"
+            className="mt-4 rounded-[10px] border border-error bg-error-container px-4 py-3 text-sm text-on-error-container"
           >
             {error}
           </p>
         ) : null}
 
-        <button
-          type="button"
-          onClick={handleContinue}
-          disabled={!selectionIsValid || saving || selection.length === 0}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {saving ? <Spinner size="sm" /> : null}
-          {saving ? 'Guardando…' : 'Continuar'}
-        </button>
-
-        <p className="mt-4 text-center text-xs text-stone-400">
-          {LITERARY_GENRES.length} géneros disponibles · podrás modificarlos después desde tu perfil
+        <p className="mt-6 text-center text-xs text-outline">
+          {LITERARY_GENRES.length} géneros disponibles · máximo {MAX_GENRES} · podrás modificarlos
+          después desde tu perfil
         </p>
-      </section>
+      </div>
+
+      {/* ─── Barra inferior fija ─────────────────────────────────────── */}
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-outline-variant bg-surface-container-lowest px-5 py-4">
+        <div className="mx-auto w-full max-w-xl">
+          <p
+            role="status"
+            aria-live="polite"
+            className="mb-3 text-center text-sm text-on-surface-variant"
+          >
+            {selection.length < MIN_GENRES
+              ? `Faltan ${MIN_GENRES - selection.length} géneros para continuar (mínimo ${MIN_GENRES}).`
+              : selection.length > MAX_GENRES
+                ? `Has elegido demasiados: máximo ${MAX_GENRES}.`
+                : `${selection.length} géneros seleccionados`}
+          </p>
+          <button
+            type="button"
+            onClick={handleContinue}
+            disabled={!selectionIsValid || saving || selection.length === 0}
+            className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-primary-container py-3 text-lg font-semibold text-white transition hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving ? <Spinner size="sm" /> : null}
+            {saving ? 'Guardando…' : 'Continuar'}
+            {!saving ? (
+              <span aria-hidden="true" className="material-symbols-outlined">
+                arrow_forward
+              </span>
+            ) : null}
+          </button>
+        </div>
+      </div>
     </main>
   );
 }

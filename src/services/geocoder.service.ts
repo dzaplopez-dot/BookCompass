@@ -74,6 +74,26 @@ export class GeocoderService {
     }
   }
 
+  /**
+   * Convierte unas coordenadas en el desglose ciudad/región/país.
+   *
+   * Se usa en «Libros cerca de ti» para ampliar la búsqueda cuando la ciudad
+   * no tiene libros asociados (ciudad → región → país).
+   *
+   * @param lat Latitud de la posición del usuario.
+   * @param lng Longitud de la posición del usuario.
+   * @returns Desglose con ciudad, región y país (cada uno o `null`).
+   * @throws AppError si la petición falla o la respuesta no es válida.
+   */
+  async reverseGeocodeDetailed(lat: number, lng: number): Promise<ReverseGeocodeResult> {
+    try {
+      this.assertValidCoordinates({ lat, lng });
+      return await nominatimRateLimiter.enqueue(() => this.fetchReverseGeocode(lat, lng));
+    } catch (error) {
+      throw normalizeError(error);
+    }
+  }
+
   /** Valida que las coordenadas sean finitas y acotadas. */
   private assertValidCoordinates(coords: { lat: number; lng: number }): void {
     const { lat, lng } = coords;

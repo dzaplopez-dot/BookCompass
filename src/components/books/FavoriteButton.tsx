@@ -40,10 +40,10 @@ export function FavoriteButton({ book }: FavoriteButtonProps) {
       onClick={handleClick}
       aria-label={favorite ? 'Quitar de favoritos' : 'Guardar en favoritos'}
       aria-pressed={favorite}
-      className={`flex h-9 w-9 items-center justify-center rounded-full text-lg shadow-sm transition ${
+      className={`flex h-9 w-9 items-center justify-center rounded-full text-lg shadow-card transition active:scale-95 ${
         favorite
-          ? 'bg-brand-500 text-white hover:bg-brand-700'
-          : 'bg-white/95 text-stone-400 hover:text-brand-500'
+          ? 'bg-primary-container text-white hover:opacity-90'
+          : 'bg-surface-container-lowest/95 text-outline hover:text-primary-container'
       }`}
     >
       <span aria-hidden="true">{favorite ? '★' : '☆'}</span>

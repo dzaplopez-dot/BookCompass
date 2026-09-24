@@ -1,28 +1,114 @@
 @import 'tailwindcss';
 
 /*
- * Tokens de diseño de Book Compass.
+ * Tokens de diseño de Book Compass — sistema «Premium Literary Discovery» (Stitch).
  * Tailwind CSS v4 genera utilidades a partir de estas variables:
- * bg-paper, text-ink, text-brand-500, font-display, etc.
+ * bg-background, bg-surface, text-on-surface, bg-primary, text-primary,
+ * bg-primary-container, bg-secondary-container, border-outline-variant, etc.
+ * Se conservan los alias legacy paper/ink/brand para compatibilidad.
  */
 @theme {
-  /* Fondo cálido tipo papel de libro */
-  --color-paper: #faf7f2;
+  /* ── Fondo y superficies ─────────────────────────────────────────── */
+  --color-background: #f9f9fd;
+  --color-surface: #f9f9fd;
+  --color-surface-bright: #f9f9fd;
+  --color-surface-dim: #d9dade;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f3f3f7;
+  --color-surface-container: #edeef2;
+  --color-surface-container-high: #e7e8ec;
+  --color-surface-container-highest: #e2e2e6;
+  --color-surface-variant: #e2e2e6;
+  --color-surface-tint: #2f628d;
 
-  /* Tinta oscura para textos */
-  --color-ink: #1c1917;
+  --color-on-surface: #191c1f;
+  --color-on-surface-variant: #42474e;
+  --color-on-background: #191c1f;
+  --color-inverse-surface: #2e3134;
+  --color-inverse-on-surface: #f0f0f4;
 
-  /* Ámbar de marca (lomo de libro) */
-  --color-brand-100: #fef3c7;
-  --color-brand-500: #d97706;
-  --color-brand-700: #b45309;
+  --color-outline: #72787f;
+  --color-outline-variant: #c1c7cf;
 
-  /* Tipografía display para títulos */
-  --font-display: Georgia, 'Times New Roman', serif;
+  /* ── Primario azul erudito ───────────────────────────────────────── */
+  --color-primary: #064771;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #2b5f8a;
+  --color-on-primary-container: #b3d8ff;
+  --color-primary-fixed: #cee5ff;
+  --color-primary-fixed-dim: #9bcbfc;
+  --color-on-primary-fixed: #001d33;
+  --color-on-primary-fixed-variant: #0d4a74;
+  --color-inverse-primary: #9bcbfc;
+
+  /* ── Secundario ámbar ────────────────────────────────────────────── */
+  --color-secondary: #835500;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #feae2c;
+  --color-on-secondary-container: #6b4500;
+
+  /* ── Terciario ───────────────────────────────────────────────────── */
+  --color-tertiary: #5d3e00;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #7a5408;
+  --color-on-tertiary-container: #ffcb7a;
+
+  /* ── Error ───────────────────────────────────────────────────────── */
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+
+  /* ── Alias legacy (compatibilidad con código existente) ──────────── */
+  --color-paper: #f9f9fd;
+  --color-ink: #191c1f;
+  --color-brand-100: #cee5ff;
+  --color-brand-500: #2b5f8a;
+  --color-brand-600: #0d4a74;
+  --color-brand-700: #064771;
+  --color-brand-800: #001d33;
+
+  /* ── Tipografías Stitch ──────────────────────────────────────────── */
+  --font-display: 'Libre Caslon Text', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+
+  /* ── Sombras de papel en capas ───────────────────────────────────── */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-overlay: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 body {
-  background-color: var(--color-paper);
-  color: var(--color-ink);
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Foco visible consistente en toda la app (teclado y lectores). */
+:focus-visible {
+  outline: 2px solid var(--color-primary-container);
+  outline-offset: 2px;
+}
+
+/* Evita el botón nativo de limpiar (el campo ya trae el propio). */
+input[type='search']::-webkit-search-cancel-button {
+  display: none;
+}
+
+/* Iconos Material Symbols (estilo Stitch: 1.5px, relleno 0). */
+.material-symbols-outlined {
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+/* Oculta la barra de desplazamiento en carruseles de chips. */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

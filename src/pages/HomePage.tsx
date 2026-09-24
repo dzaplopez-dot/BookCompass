@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookCard } from '../components/books/BookCard';
 import { SearchBar } from '../components/books/SearchBar';
+import { BottomNav } from '../components/common/BottomNav';
 import { Spinner } from '../components/common/Spinner';
 import { useAuth } from '../hooks/useAuth';
 import { useFavorites } from '../hooks/useFavorites';
@@ -138,134 +139,79 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-svh bg-paper">
-      {/* ─── Cabecera ────────────────────────────────────────────────────── */}
-      <header className="border-b border-stone-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-          <span className="font-display text-xl font-bold">🧭 Book Compass</span>
-          <div className="flex items-center gap-2">
-            <Link
-              to="/cerca"
-              className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium transition hover:bg-stone-50"
-            >
-              📍 Cerca
-            </Link>
-            <Link
-              to="/map"
-              className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium transition hover:bg-stone-50"
-            >
-              🗺️ Mapa
-            </Link>
-            <Link
-              to="/perfil"
-              className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium transition hover:bg-stone-50"
-            >
-              👤 Perfil
-            </Link>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium transition hover:bg-stone-50"
-            >
-              Cerrar sesión
-            </button>
-          </div>
-        </div>
+    <div className="min-h-svh bg-background pb-[80px] pt-[56px] md:pt-[72px]">
+      {/* ─── TopBar Stitch ─────────────────────────────────────────────── */}
+      <header className="fixed top-0 z-50 flex h-14 w-full items-center justify-between bg-surface px-5 shadow-sm md:h-[72px] md:px-10">
+        <button
+          type="button"
+          onClick={handleLogout}
+          aria-label="Cerrar sesión"
+          title="Cerrar sesión"
+          className="text-primary transition hover:opacity-80 active:scale-95"
+        >
+          <span aria-hidden="true" className="material-symbols-outlined text-2xl">
+            logout
+          </span>
+        </button>
+        <h1 className="font-display text-[22px] font-bold tracking-tight text-primary md:text-2xl">
+          Buscar
+        </h1>
+        <Link
+          to="/perfil"
+          aria-label="Ir a mi perfil"
+          className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-primary-fixed text-xs font-bold text-primary transition hover:opacity-80"
+        >
+          {(displayName.trim().charAt(0) || 'L').toUpperCase()}
+        </Link>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <main className="mx-auto flex max-w-[1200px] flex-col gap-6 px-5 pt-4 md:px-10">
         {/* ─── Bienvenida ───────────────────────────────────────────────── */}
-        <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
-          <h1 className="font-display text-3xl font-bold tracking-tight">
+        <section className="rounded-[12px] bg-surface-container-lowest p-6 shadow-card sm:p-8">
+          <h2 className="font-display text-2xl font-bold tracking-tight text-on-surface">
             ¡Bienvenido, {displayName}!
-          </h1>
+          </h2>
 
           <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
-            <div className="rounded-xl bg-paper p-4">
-              <dt className="text-xs uppercase tracking-wide text-stone-400">Correo</dt>
-              <dd className="mt-1 break-all font-medium">{user.email}</dd>
+            <div className="rounded-[10px] bg-surface-container-low p-4">
+              <dt className="text-xs uppercase tracking-wide text-outline">Correo</dt>
+              <dd className="mt-1 break-all font-medium text-on-surface">{user.email}</dd>
             </div>
-            <div className="rounded-xl bg-paper p-4">
-              <dt className="text-xs uppercase tracking-wide text-stone-400">Miembro desde</dt>
-              <dd className="mt-1 font-medium">{formatDate(profile?.createdAt)}</dd>
+            <div className="rounded-[10px] bg-surface-container-low p-4">
+              <dt className="text-xs uppercase tracking-wide text-outline">Miembro desde</dt>
+              <dd className="mt-1 font-medium text-on-surface">{formatDate(profile?.createdAt)}</dd>
             </div>
-            <div className="rounded-xl bg-paper p-4">
-              <dt className="text-xs uppercase tracking-wide text-stone-400">Último acceso</dt>
-              <dd className="mt-1 font-medium">{formatDate(profile?.lastLoginAt)}</dd>
+            <div className="rounded-[10px] bg-surface-container-low p-4">
+              <dt className="text-xs uppercase tracking-wide text-outline">Último acceso</dt>
+              <dd className="mt-1 font-medium text-on-surface">
+                {formatDate(profile?.lastLoginAt)}
+              </dd>
             </div>
           </dl>
-        </section>
 
-        {/* ─── Recomendado para ti ─────────────────────────────────────── */}
-        <section className="mt-8">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-2xl font-bold tracking-tight">Recomendado para ti</h2>
-            <Link to="/onboarding" className="text-sm font-semibold text-brand-700 hover:underline">
-              Configurar géneros
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              to="/cerca"
+              className="inline-flex min-h-[48px] items-center gap-2 rounded-[10px] border-[1.5px] border-outline-variant px-4 py-2 text-sm font-medium text-on-surface transition hover:bg-surface-container-low"
+            >
+              <span aria-hidden="true" className="material-symbols-outlined text-lg text-primary">
+                near_me
+              </span>
+              Libros cerca de mí
             </Link>
           </div>
-
-          {genresLoading ? (
-            <div className="flex justify-center py-8">
-              <Spinner size="md" label="Cargando tus gustos…" />
-            </div>
-          ) : !isValid ? (
-            <p className="py-6 text-center text-sm text-stone-400">
-              Elige al menos 3 géneros para recibir recomendaciones personalizadas.
-            </p>
-          ) : recommendationsLoading ? (
-            <div className="flex justify-center py-8">
-              <Spinner size="md" label="Buscando recomendaciones…" />
-            </div>
-          ) : recommendationsError ? (
-            <p
-              role="alert"
-              className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700"
-            >
-              {recommendationsError}
-            </p>
-          ) : recommendations.length === 0 ? (
-            <p className="py-6 text-center text-sm text-stone-400">
-              Todavía no hay recomendaciones para tus géneros.
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-              {recommendations.map((book) => (
-                <BookCard key={book.id} book={book} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* ─── Mis favoritos ─────────────────────────────────────────────── */}
-        <section className="mt-8">
-          <h2 className="mb-4 font-display text-2xl font-bold tracking-tight">Mis favoritos</h2>
-
-          {favoritesLoading ? (
-            <div className="flex justify-center py-8">
-              <Spinner size="md" label="Cargando favoritos…" />
-            </div>
-          ) : favorites.length === 0 ? (
-            <p className="py-6 text-center text-sm text-stone-400">
-              Aún no has guardado ningún libro. Pulsa ★ en una tarjeta para guardarlo.
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-              {favorites.map((book) => (
-                <BookCard key={book.id} book={book} />
-              ))}
-            </div>
-          )}
         </section>
 
         {/* ─── Descubrimiento ────────────────────────────────────────────── */}
-        <section className="mt-8">
-          <h2 className="mb-4 font-display text-2xl font-bold tracking-tight">Descubre libros</h2>
+        <section className="mt-2">
+          <h2 className="mb-4 font-display text-[22px] font-bold tracking-tight text-on-surface md:text-2xl">
+            Descubre libros
+          </h2>
           <SearchBar value={query} onSearch={handleSearch} disabled={loading} />
 
           {/* Info de resultados */}
           {searched && !error ? (
-            <p className="mt-3 text-sm text-stone-500">
+            <p className="mt-3 text-sm text-on-surface-variant">
               {total > 0
                 ? `${total.toLocaleString('es-CO')} resultado${total === 1 ? '' : 's'} para «${query}»`
                 : null}
@@ -276,7 +222,7 @@ export default function HomePage() {
           {error ? (
             <div
               role="alert"
-              className="mt-4 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700"
+              className="mt-4 rounded-[12px] border border-error bg-error-container px-4 py-3 text-sm text-on-error-container"
             >
               {error}
             </div>
@@ -291,21 +237,21 @@ export default function HomePage() {
 
           {/* Estado vacío: sin búsqueda */}
           {!searched && !error && !loading ? (
-            <p className="py-12 text-center text-sm text-stone-400">
+            <p className="py-12 text-center text-sm text-on-surface-variant">
               Busca por título o autor para empezar a descubrir libros.
             </p>
           ) : null}
 
           {/* Sin resultados */}
           {searched && results.length === 0 && !loading && !error ? (
-            <p className="py-12 text-center text-sm text-stone-500">
+            <p className="py-12 text-center text-sm text-on-surface-variant">
               No encontramos libros para «{query}». Intenta con otros términos.
             </p>
           ) : null}
 
-          {/* Grid de resultados */}
+          {/* Lista de resultados */}
           {results.length > 0 ? (
-            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            <div className="mt-6 flex flex-col gap-4">
               {results.map((book) => (
                 <BookCard key={book.id} book={book} />
               ))}
@@ -319,7 +265,7 @@ export default function HomePage() {
                 type="button"
                 onClick={handleLoadMore}
                 disabled={loading}
-                className="flex items-center gap-2 rounded-lg border border-stone-300 px-6 py-2.5 text-sm font-medium transition hover:bg-stone-50 disabled:opacity-60"
+                className="flex min-h-[48px] items-center gap-2 rounded-[10px] border-[1.5px] border-outline-variant px-6 py-3 text-sm font-medium text-on-surface transition hover:bg-surface-container-low disabled:opacity-60"
               >
                 {loading ? <Spinner size="sm" /> : null}
                 {loading ? 'Cargando…' : 'Cargar más'}
@@ -327,7 +273,78 @@ export default function HomePage() {
             </div>
           ) : null}
         </section>
+
+        {/* ─── Recomendado para ti ─────────────────────────────────────── */}
+        <section className="mt-2">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-display text-[22px] font-bold tracking-tight text-on-surface md:text-2xl">
+              Recomendado para ti
+            </h2>
+            <Link
+              to="/onboarding"
+              className="text-sm font-semibold text-primary-container transition hover:opacity-80"
+            >
+              Configurar géneros
+            </Link>
+          </div>
+
+          {genresLoading ? (
+            <div className="flex justify-center py-8">
+              <Spinner size="md" label="Cargando tus gustos…" />
+            </div>
+          ) : !isValid ? (
+            <p className="py-6 text-center text-sm text-on-surface-variant">
+              Elige al menos 3 géneros para recibir recomendaciones personalizadas.
+            </p>
+          ) : recommendationsLoading ? (
+            <div className="flex justify-center py-8">
+              <Spinner size="md" label="Buscando recomendaciones…" />
+            </div>
+          ) : recommendationsError ? (
+            <p
+              role="alert"
+              className="rounded-[12px] border border-error bg-error-container px-4 py-3 text-sm text-on-error-container"
+            >
+              {recommendationsError}
+            </p>
+          ) : recommendations.length === 0 ? (
+            <p className="py-6 text-center text-sm text-on-surface-variant">
+              Todavía no hay recomendaciones para tus géneros.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {recommendations.map((book) => (
+                <BookCard key={book.id} book={book} />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* ─── Mis favoritos ─────────────────────────────────────────────── */}
+        <section className="mt-2">
+          <h2 className="mb-4 font-display text-[22px] font-bold tracking-tight text-on-surface md:text-2xl">
+            Mis favoritos
+          </h2>
+
+          {favoritesLoading ? (
+            <div className="flex justify-center py-8">
+              <Spinner size="md" label="Cargando favoritos…" />
+            </div>
+          ) : favorites.length === 0 ? (
+            <p className="py-6 text-center text-sm text-on-surface-variant">
+              Aún no has guardado ningún libro. Pulsa ★ en una tarjeta para guardarlo.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {favorites.map((book) => (
+                <BookCard key={book.id} book={book} />
+              ))}
+            </div>
+          )}
+        </section>
       </main>
+
+      <BottomNav />
     </div>
   );
 }

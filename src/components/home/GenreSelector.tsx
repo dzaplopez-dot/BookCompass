@@ -22,11 +22,7 @@ export interface GenreSelectorProps {
  */
 export function GenreSelector({ selection, onToggle, disabled = false }: GenreSelectorProps) {
   return (
-    <div
-      role="group"
-      aria-label="Géneros literarios favoritos"
-      className="grid grid-cols-2 gap-3 sm:grid-cols-3"
-    >
+    <div role="group" aria-label="Géneros literarios favoritos" className="grid grid-cols-2 gap-4">
       {LITERARY_GENRES.map((genre) => {
         const selected = selection.includes(genre.id);
         const disabledToggle = disabled || (!selected && selection.length >= MAX_GENRES);
@@ -37,17 +33,20 @@ export function GenreSelector({ selection, onToggle, disabled = false }: GenreSe
             aria-pressed={selected}
             disabled={disabledToggle}
             onClick={() => onToggle(genre.id)}
-            className={`rounded-xl border p-3 text-left transition ${
+            title={genre.description}
+            className={`flex min-h-[56px] items-center justify-between gap-2 rounded-[8px] border-[1.5px] border-primary-container p-4 text-left transition active:scale-[0.98] ${
               selected
-                ? 'border-brand-500 bg-brand-50 ring-2 ring-brand-500'
-                : 'border-stone-200 bg-white hover:border-stone-300'
+                ? 'bg-primary-fixed text-primary'
+                : 'bg-surface-container-lowest text-primary-container hover:bg-surface-container-low'
             } disabled:cursor-not-allowed disabled:opacity-50`}
           >
-            <span className={`block font-semibold ${selected ? 'text-brand-700' : 'text-ink'}`}>
-              {selected ? '✓ ' : ''}
-              {genre.label}
-            </span>
-            <span className="mt-1 block text-xs text-stone-500">{genre.description}</span>
+            <span className="block text-base font-medium">{genre.label}</span>
+            <span className="sr-only">. {genre.description}</span>
+            {selected ? (
+              <span aria-hidden="true" className="material-symbols-outlined text-xl">
+                check
+              </span>
+            ) : null}
           </button>
         );
       })}

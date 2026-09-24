@@ -10,10 +10,10 @@ import { Spinner } from '../components/common/Spinner';
 import { useAuth } from '../hooks/useAuth';
 import { isValidEmail } from '../utils/validation';
 
-/** Clases compartidas de los campos de formulario. */
+/** Clases Stitch de los campos con icono a la izquierda. */
 const inputClasses = (hasError: boolean): string =>
-  `w-full rounded-lg border px-4 py-2.5 text-ink outline-none transition focus:ring-2 focus:ring-brand-500 ${
-    hasError ? 'border-red-500' : 'border-stone-300'
+  `w-full rounded-[10px] border bg-surface-container-lowest py-3 pl-10 pr-3 text-on-surface outline-none transition placeholder:text-outline focus:border-primary-container focus:ring-1 focus:ring-primary-container ${
+    hasError ? 'border-error' : 'border-outline-variant'
   }`;
 
 /** Página pública de restablecimiento de contraseña. */
@@ -49,22 +49,24 @@ export default function ForgotPasswordPage() {
 
   if (sentTo) {
     return (
-      <main className="flex min-h-svh items-center justify-center bg-paper px-4 py-10">
-        <section className="w-full max-w-md rounded-2xl border border-stone-200 bg-white p-8 text-center shadow-sm">
+      <main className="flex min-h-svh items-center justify-center bg-surface p-5 antialiased">
+        <section className="w-full max-w-[480px] rounded-[12px] bg-surface-container-lowest p-8 text-center shadow-card md:p-12">
           <span
             aria-hidden="true"
-            className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-2xl"
+            className="material-symbols-outlined mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-fixed text-2xl text-primary"
           >
-            ✉️
+            mail
           </span>
-          <h1 className="mt-4 font-display text-2xl font-bold tracking-tight">Revisa tu correo</h1>
-          <p className="mt-2 text-sm text-stone-600">
+          <h1 className="mt-4 font-display text-2xl font-bold tracking-tight text-on-surface">
+            Revisa tu correo
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
             Hemos enviado instrucciones para restablecer tu contraseña a{' '}
-            <strong className="break-all">{sentTo}</strong>.
+            <strong className="break-all text-on-surface">{sentTo}</strong>.
           </p>
           <Link
             to="/login"
-            className="mt-6 inline-block rounded-lg bg-brand-500 px-6 py-2.5 font-semibold text-white transition hover:bg-brand-700"
+            className="mt-6 inline-block min-h-[48px] rounded-[12px] bg-primary-container px-6 py-3 font-semibold text-white transition hover:opacity-90 active:scale-95"
           >
             Volver a iniciar sesión
           </Link>
@@ -76,31 +78,48 @@ export default function ForgotPasswordPage() {
   const bannerMessage = validationMessage ?? error;
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-paper px-4 py-10">
-      <section className="w-full max-w-md rounded-2xl border border-stone-200 bg-white p-8 shadow-sm">
-        <h1 className="font-display text-3xl font-bold tracking-tight">Recupera tu contraseña</h1>
-        <p className="mt-1 text-sm text-stone-500">
-          Escribe tu correo y te enviaremos un enlace para crear una nueva.
-        </p>
+    <main className="flex min-h-svh items-center justify-center bg-surface p-5 antialiased md:p-10">
+      <section className="w-full max-w-[480px] rounded-[12px] bg-surface-container-lowest p-8 shadow-card md:p-12">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <span
+            aria-hidden="true"
+            className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary-container text-4xl text-white"
+          >
+            🧭
+          </span>
+          <h1 className="font-display text-4xl font-bold leading-tight tracking-tight text-on-surface">
+            Recupera tu contraseña
+          </h1>
+          <p className="mt-2 text-base leading-relaxed text-on-surface-variant">
+            Escribe tu correo y te enviaremos un enlace para crear una nueva.
+          </p>
+        </div>
 
         {bannerMessage ? (
           <p
             role="alert"
-            className="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700"
+            className="mb-4 rounded-[10px] border border-error bg-error-container px-4 py-3 text-sm text-on-error-container"
           >
             {bannerMessage}
           </p>
         ) : null}
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
-          <div>
-            <label htmlFor="forgot-email" className="mb-1 block text-sm font-medium">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <div className="relative">
+            <label htmlFor="forgot-email" className="sr-only">
               Correo electrónico
             </label>
+            <span
+              aria-hidden="true"
+              className="material-symbols-outlined pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-outline"
+            >
+              mail
+            </span>
             <input
               id="forgot-email"
               type="email"
               autoComplete="email"
+              placeholder="Correo electrónico"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               className={inputClasses(Boolean(bannerMessage))}
@@ -112,7 +131,7 @@ export default function ForgotPasswordPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[12px] bg-primary-container py-3 text-lg font-semibold text-white transition hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? <Spinner size="sm" /> : null}
             {submitting ? 'Enviando…' : 'Enviar instrucciones'}
@@ -120,7 +139,10 @@ export default function ForgotPasswordPage() {
         </form>
 
         <p className="mt-6 text-center text-sm">
-          <Link to="/login" className="font-semibold text-brand-700 hover:underline">
+          <Link
+            to="/login"
+            className="font-semibold text-primary-container transition hover:opacity-80"
+          >
             Volver a iniciar sesión
           </Link>
         </p>

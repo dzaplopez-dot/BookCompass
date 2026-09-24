@@ -10,10 +10,10 @@ import { Spinner } from '../components/common/Spinner';
 import { useAuth } from '../hooks/useAuth';
 import { isValidEmail } from '../utils/validation';
 
-/** Clases compartidas de los campos de formulario. */
+/** Clases Stitch de los campos con icono a la izquierda. */
 const inputClasses = (hasError: boolean): string =>
-  `w-full rounded-lg border px-4 py-2.5 text-ink outline-none transition focus:ring-2 focus:ring-brand-500 ${
-    hasError ? 'border-red-500' : 'border-stone-300'
+  `w-full rounded-[10px] border bg-surface-container-lowest py-3 pl-10 pr-3 text-on-surface outline-none transition placeholder:text-outline focus:border-primary-container focus:ring-1 focus:ring-primary-container ${
+    hasError ? 'border-error' : 'border-outline-variant'
   }`;
 
 /** Página pública de autenticación con correo y Google. */
@@ -66,29 +66,48 @@ export default function LoginPage() {
   const bannerMessage = validationMessage ?? error;
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-paper px-4 py-10">
-      <section className="w-full max-w-md rounded-2xl border border-stone-200 bg-white p-8 shadow-sm">
-        <h1 className="font-display text-3xl font-bold tracking-tight">Inicia sesión</h1>
-        <p className="mt-1 text-sm text-stone-500">Tu brújula hacia tu próxima lectura favorita.</p>
+    <main className="flex min-h-svh items-center justify-center bg-surface p-5 antialiased md:p-10">
+      <section className="w-full max-w-[480px] rounded-[12px] bg-surface-container-lowest p-8 shadow-card md:p-12">
+        <div className="mb-12 flex flex-col items-center text-center">
+          <span
+            aria-hidden="true"
+            className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary-container text-4xl text-white"
+          >
+            🧭
+          </span>
+          <h1 className="font-display text-4xl font-bold leading-tight tracking-tight text-on-surface">
+            Bienvenido de nuevo
+          </h1>
+          <p className="mt-2 text-base leading-relaxed text-on-surface-variant">
+            Inicia sesión para continuar en BookCompass
+          </p>
+        </div>
 
         {bannerMessage ? (
           <p
             role="alert"
-            className="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700"
+            className="mb-4 rounded-[10px] border border-error bg-error-container px-4 py-3 text-sm text-on-error-container"
           >
             {bannerMessage}
           </p>
         ) : null}
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
-          <div>
-            <label htmlFor="login-email" className="mb-1 block text-sm font-medium">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <div className="relative">
+            <label htmlFor="login-email" className="sr-only">
               Correo electrónico
             </label>
+            <span
+              aria-hidden="true"
+              className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center leading-none text-outline"
+            >
+              mail
+            </span>
             <input
               id="login-email"
               type="email"
               autoComplete="email"
+              placeholder="Correo electrónico"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               className={inputClasses(Boolean(bannerMessage))}
@@ -97,14 +116,21 @@ export default function LoginPage() {
             />
           </div>
 
-          <div>
-            <label htmlFor="login-password" className="mb-1 block text-sm font-medium">
+          <div className="relative">
+            <label htmlFor="login-password" className="sr-only">
               Contraseña
             </label>
+            <span
+              aria-hidden="true"
+              className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center leading-none text-outline"
+            >
+              lock
+            </span>
             <input
               id="login-password"
               type="password"
               autoComplete="current-password"
+              placeholder="Contraseña"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className={inputClasses(Boolean(bannerMessage))}
@@ -113,21 +139,36 @@ export default function LoginPage() {
             />
           </div>
 
+          <div className="flex items-center justify-end">
+            <Link
+              to="/forgot-password"
+              className="text-sm font-medium text-primary-container transition hover:opacity-80"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
+
           <button
             type="submit"
             disabled={submitting || googleLoading}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-6 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[12px] bg-primary-container py-3 text-lg font-semibold text-white transition hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? <Spinner size="sm" /> : null}
             {submitting ? 'Entrando…' : 'Iniciar sesión'}
           </button>
         </form>
 
+        <div className="mt-6 flex items-center">
+          <div className="flex-grow border-t border-outline-variant"></div>
+          <span className="mx-4 text-xs text-on-surface-variant">o continuar con</span>
+          <div className="flex-grow border-t border-outline-variant"></div>
+        </div>
+
         <button
           type="button"
           onClick={handleGoogle}
           disabled={submitting || googleLoading}
-          className="mt-3 flex w-full items-center justify-center gap-3 rounded-lg border border-stone-300 bg-white px-4 py-2.5 font-medium text-ink transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-6 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[10px] border-[1.5px] border-outline-variant py-3 text-sm font-medium text-on-surface transition hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
         >
           {googleLoading ? (
             <Spinner size="sm" />
@@ -154,17 +195,15 @@ export default function LoginPage() {
           Iniciar con Google
         </button>
 
-        <div className="mt-6 flex flex-col gap-2 text-center text-sm">
-          <Link to="/forgot-password" className="text-brand-700 hover:underline">
-            ¿Olvidaste tu contraseña?
+        <p className="mt-6 text-center text-base text-on-surface-variant">
+          ¿No tienes una cuenta?{' '}
+          <Link
+            to="/register"
+            className="font-semibold text-primary-container transition hover:opacity-80"
+          >
+            Regístrate
           </Link>
-          <p className="text-stone-500">
-            ¿No tienes cuenta?{' '}
-            <Link to="/register" className="font-semibold text-brand-700 hover:underline">
-              Regístrate
-            </Link>
-          </p>
-        </div>
+        </p>
       </section>
     </main>
   );

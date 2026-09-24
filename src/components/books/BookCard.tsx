@@ -21,22 +21,26 @@ export function BookCard({ book }: BookCardProps) {
   const authorText = book.authors.length > 0 ? book.authors.join(', ') : 'Autor desconocido';
 
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm transition hover:shadow-md">
-      <Link to={`/books/${book.id}`} className="flex flex-col">
-        <BookCover
-          sources={{
-            jpeg: book.coverUrl,
-            webp: book.coverUrlWebp,
-            avif: book.coverUrlAvif,
-            alt: `Portada de ${book.title}`,
-          }}
-        />
+    <article className="group relative flex gap-4 overflow-hidden rounded-[12px] bg-surface-container-lowest p-3 shadow-card transition hover:shadow-overlay">
+      <Link to={`/books/${book.id}`} className="flex flex-1 gap-4" aria-label={book.title}>
+        <div className="w-24 shrink-0 overflow-hidden rounded-[8px] bg-surface-container-low">
+          <BookCover
+            sources={{
+              jpeg: book.coverUrl,
+              webp: book.coverUrlWebp,
+              avif: book.coverUrlAvif,
+              alt: `Portada de ${book.title}`,
+            }}
+          />
+        </div>
 
-        <div className="flex flex-1 flex-col gap-1 p-4">
-          <h3 className="line-clamp-2 text-sm font-semibold leading-snug">{book.title}</h3>
-          <p className="line-clamp-1 text-xs text-stone-500">{authorText}</p>
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-1 pr-8">
+          <h3 className="line-clamp-2 text-lg font-semibold leading-snug text-on-surface">
+            {book.title}
+          </h3>
+          <p className="line-clamp-1 text-base text-on-surface-variant">{authorText}</p>
           {book.firstPublishYear !== null ? (
-            <p className="mt-auto text-xs text-stone-400">{book.firstPublishYear}</p>
+            <p className="text-sm text-outline">{book.firstPublishYear}</p>
           ) : null}
         </div>
       </Link>

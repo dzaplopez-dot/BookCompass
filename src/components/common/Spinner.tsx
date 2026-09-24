@@ -35,7 +35,7 @@ export function Spinner({ size = 'md', label, fullScreen = false }: SpinnerProps
       role="status"
       aria-live="polite"
       aria-label={label ?? 'Cargando'}
-      className={`inline-block animate-spin rounded-full border-solid border-brand-500 border-t-transparent ${SIZE_CLASSES[size]}`}
+      className={`inline-block animate-spin rounded-full border-solid border-primary-container border-t-transparent ${SIZE_CLASSES[size]}`}
     />
   );
 
@@ -44,9 +44,9 @@ export function Spinner({ size = 'md', label, fullScreen = false }: SpinnerProps
   }
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-3 bg-paper">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-3 bg-background">
       {ring}
-      {label ? <p className="text-sm text-stone-500">{label}</p> : null}
+      {label ? <p className="text-sm text-on-surface-variant">{label}</p> : null}
     </div>
   );
 }

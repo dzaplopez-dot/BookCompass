@@ -15,10 +15,10 @@ import {
   passwordsMatch,
 } from '../utils/validation';
 
-/** Clases compartidas de los campos de formulario. */
+/** Clases Stitch de los campos con icono a la izquierda. */
 const inputClasses = (hasError: boolean): string =>
-  `w-full rounded-lg border px-4 py-2.5 text-ink outline-none transition focus:ring-2 focus:ring-brand-500 ${
-    hasError ? 'border-red-500' : 'border-stone-300'
+  `w-full rounded-[10px] border bg-surface-container-lowest py-3 pl-10 pr-3 text-on-surface outline-none transition placeholder:text-outline focus:border-primary-container focus:ring-1 focus:ring-primary-container ${
+    hasError ? 'border-error' : 'border-outline-variant'
   }`;
 
 /** Mensajes de validación por campo. */
@@ -90,31 +90,48 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-paper px-4 py-10">
-      <section className="w-full max-w-md rounded-2xl border border-stone-200 bg-white p-8 shadow-sm">
-        <h1 className="font-display text-3xl font-bold tracking-tight">Crea tu cuenta</h1>
-        <p className="mt-1 text-sm text-stone-500">
-          Empieza a explorar el mundo de los libros con Book Compass.
-        </p>
+    <main className="flex min-h-svh items-center justify-center bg-surface p-5 antialiased md:p-10">
+      <section className="w-full max-w-[480px] rounded-[12px] bg-surface-container-lowest p-8 shadow-card md:p-12">
+        <div className="mb-12 flex flex-col items-center text-center">
+          <span
+            aria-hidden="true"
+            className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary-container text-4xl text-white"
+          >
+            🧭
+          </span>
+          <h1 className="font-display text-4xl font-bold leading-tight tracking-tight text-on-surface">
+            Crea tu cuenta
+          </h1>
+          <p className="mt-2 text-base leading-relaxed text-on-surface-variant">
+            Únete a la comunidad de lectores y descubre libros cerca de ti.
+          </p>
+        </div>
 
         {error ? (
           <p
             role="alert"
-            className="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700"
+            className="mb-4 rounded-[10px] border border-error bg-error-container px-4 py-3 text-sm text-on-error-container"
           >
             {error}
           </p>
         ) : null}
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
-          <div>
-            <label htmlFor="register-name" className="mb-1 block text-sm font-medium">
-              Nombre <span className="font-normal text-stone-400">(opcional)</span>
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <div className="relative">
+            <label htmlFor="register-name" className="sr-only">
+              Nombre completo
             </label>
+            <span
+              aria-hidden="true"
+              className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center leading-none text-outline"
+            >
+              person
+            </span>
             <input
               id="register-name"
               type="text"
               autoComplete="name"
+              placeholder="Nombre completo"
               value={displayName}
               onChange={(event) => setDisplayName(event.target.value)}
               className={inputClasses(false)}
@@ -123,84 +140,114 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label htmlFor="register-email" className="mb-1 block text-sm font-medium">
-              Correo electrónico
-            </label>
-            <input
-              id="register-email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(event) => {
-                setEmail(event.target.value);
-                clearFieldError('email');
-              }}
-              className={inputClasses(Boolean(fieldErrors.email))}
-              aria-invalid={Boolean(fieldErrors.email)}
-              disabled={submitting}
-            />
+            <div className="relative">
+              <label htmlFor="register-email" className="sr-only">
+                Correo electrónico
+              </label>
+              <span
+                aria-hidden="true"
+                className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center leading-none text-outline"
+              >
+                mail
+              </span>
+              <input
+                id="register-email"
+                type="email"
+                autoComplete="email"
+                placeholder="Correo electrónico"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  clearFieldError('email');
+                }}
+                className={inputClasses(Boolean(fieldErrors.email))}
+                aria-invalid={Boolean(fieldErrors.email)}
+                disabled={submitting}
+              />
+            </div>
             {fieldErrors.email ? (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>
+              <p className="mt-1 text-sm text-error">{fieldErrors.email}</p>
             ) : null}
           </div>
 
           <div>
-            <label htmlFor="register-password" className="mb-1 block text-sm font-medium">
-              Contraseña
-            </label>
-            <input
-              id="register-password"
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(event) => {
-                setPassword(event.target.value);
-                clearFieldError('password');
-              }}
-              className={inputClasses(Boolean(fieldErrors.password))}
-              aria-invalid={Boolean(fieldErrors.password)}
-              disabled={submitting}
-            />
+            <div className="relative">
+              <label htmlFor="register-password" className="sr-only">
+                Contraseña
+              </label>
+              <span
+                aria-hidden="true"
+                className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center leading-none text-outline"
+              >
+                lock
+              </span>
+              <input
+                id="register-password"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Contraseña"
+                value={password}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  clearFieldError('password');
+                }}
+                className={inputClasses(Boolean(fieldErrors.password))}
+                aria-invalid={Boolean(fieldErrors.password)}
+                disabled={submitting}
+              />
+            </div>
             {fieldErrors.password ? (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>
+              <p className="mt-1 text-sm text-error">{fieldErrors.password}</p>
             ) : null}
           </div>
 
           <div>
-            <label htmlFor="register-confirm-password" className="mb-1 block text-sm font-medium">
-              Confirmar contraseña
-            </label>
-            <input
-              id="register-confirm-password"
-              type="password"
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChange={(event) => {
-                setConfirmPassword(event.target.value);
-                clearFieldError('confirmPassword');
-              }}
-              className={inputClasses(Boolean(fieldErrors.confirmPassword))}
-              aria-invalid={Boolean(fieldErrors.confirmPassword)}
-              disabled={submitting}
-            />
+            <div className="relative">
+              <label htmlFor="register-confirm-password" className="sr-only">
+                Confirmar contraseña
+              </label>
+              <span
+                aria-hidden="true"
+                className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center leading-none text-outline"
+              >
+                lock
+              </span>
+              <input
+                id="register-confirm-password"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Confirmar contraseña"
+                value={confirmPassword}
+                onChange={(event) => {
+                  setConfirmPassword(event.target.value);
+                  clearFieldError('confirmPassword');
+                }}
+                className={inputClasses(Boolean(fieldErrors.confirmPassword))}
+                aria-invalid={Boolean(fieldErrors.confirmPassword)}
+                disabled={submitting}
+              />
+            </div>
             {fieldErrors.confirmPassword ? (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors.confirmPassword}</p>
+              <p className="mt-1 text-sm text-error">{fieldErrors.confirmPassword}</p>
             ) : null}
           </div>
 
           <button
             type="submit"
             disabled={submitting}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-6 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[12px] bg-primary-container py-3 text-lg font-semibold text-white transition hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? <Spinner size="sm" /> : null}
-            {submitting ? 'Creando cuenta…' : 'Registrarme'}
+            {submitting ? 'Creando cuenta…' : 'Registrarse'}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-stone-500">
+        <p className="mt-6 text-center text-base text-on-surface-variant">
           ¿Ya tienes cuenta?{' '}
-          <Link to="/login" className="font-semibold text-brand-700 hover:underline">
+          <Link
+            to="/login"
+            className="font-semibold text-primary-container transition hover:opacity-80"
+          >
             Inicia sesión
           </Link>
         </p>

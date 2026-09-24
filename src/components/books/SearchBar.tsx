@@ -26,7 +26,7 @@ const DEBOUNCE_MS = 450;
 export function SearchBar({
   value,
   onSearch,
-  placeholder = 'Busca por título o autor…',
+  placeholder = 'Busca por título, autor o género',
   disabled = false,
 }: SearchBarProps) {
   const [localValue, setLocalValue] = useState(value);
@@ -64,20 +64,13 @@ export function SearchBar({
   }
 
   return (
-    <div className="relative">
-      {/* Icono lupa */}
-      <svg
+    <div className="relative w-full">
+      <span
         aria-hidden="true"
-        viewBox="0 0 20 20"
-        className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-stone-400"
+        className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-outline"
       >
-        <path
-          fill="currentColor"
-          fillRule="evenodd"
-          d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z"
-          clipRule="evenodd"
-        />
-      </svg>
+        search
+      </span>
 
       <input
         type="search"
@@ -86,7 +79,7 @@ export function SearchBar({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled}
-        className="w-full rounded-lg border border-stone-300 bg-white py-2.5 pl-10 pr-10 text-sm text-ink outline-none transition placeholder:text-stone-400 focus:ring-2 focus:ring-brand-500 disabled:opacity-60"
+        className="w-full rounded-[12px] border border-outline-variant bg-surface-container-lowest py-3 pl-10 pr-10 text-base text-on-surface outline-none transition placeholder:text-outline focus:border-primary-container focus:ring-1 focus:ring-primary-container disabled:opacity-60"
         aria-label="Buscar libros"
       />
 
@@ -94,17 +87,12 @@ export function SearchBar({
         <button
           type="button"
           onClick={handleClear}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 transition hover:text-stone-600"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-outline transition hover:text-on-surface"
           aria-label="Limpiar búsqueda"
         >
-          <svg viewBox="0 0 20 20" className="h-5 w-5">
-            <path
-              fill="currentColor"
-              fillRule="evenodd"
-              d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z"
-              clipRule="evenodd"
-            />
-          </svg>
+          <span aria-hidden="true" className="material-symbols-outlined text-xl">
+            cancel
+          </span>
         </button>
       ) : null}
     </div>
