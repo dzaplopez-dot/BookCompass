@@ -6,6 +6,7 @@
  */
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { BrandLogo } from '../components/common/BrandLogo';
 import { Spinner } from '../components/common/Spinner';
 import { useAuth } from '../hooks/useAuth';
 import { isValidEmail } from '../utils/validation';
@@ -53,7 +54,7 @@ export default function ForgotPasswordPage() {
         <section className="w-full max-w-[480px] rounded-[12px] bg-surface-container-lowest p-8 text-center shadow-card md:p-12">
           <span
             aria-hidden="true"
-            className="material-symbols-outlined mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-fixed text-2xl text-primary"
+            className="material-symbols-outlined mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary-fixed text-2xl leading-none text-primary"
           >
             mail
           </span>
@@ -81,12 +82,7 @@ export default function ForgotPasswordPage() {
     <main className="flex min-h-svh items-center justify-center bg-surface p-5 antialiased md:p-10">
       <section className="w-full max-w-[480px] rounded-[12px] bg-surface-container-lowest p-8 shadow-card md:p-12">
         <div className="mb-8 flex flex-col items-center text-center">
-          <span
-            aria-hidden="true"
-            className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary-container text-4xl text-white"
-          >
-            🧭
-          </span>
+          <BrandLogo size="md" className="mb-4" />
           <h1 className="font-display text-4xl font-bold leading-tight tracking-tight text-on-surface">
             Recupera tu contraseña
           </h1>
@@ -111,7 +107,7 @@ export default function ForgotPasswordPage() {
             </label>
             <span
               aria-hidden="true"
-              className="material-symbols-outlined pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-outline"
+              className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center leading-none text-outline"
             >
               mail
             </span>

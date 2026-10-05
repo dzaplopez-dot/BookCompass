@@ -4,7 +4,7 @@
  * Muestra un saludo personalizado y una sección de búsqueda que conecta
  * con Internet Archive a través de {@link archiveBooksService}.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookCard } from '../components/books/BookCard';
 import { SearchBar } from '../components/books/SearchBar';
@@ -14,7 +14,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFavorites } from '../hooks/useFavorites';
 import { useGenres } from '../hooks/useGenres';
 import { analyticsService } from '../services/analytics.service';
-import { archiveBooksService } from '../services/archive-books.service';
+import { SEARCH_ABORTED_CODE, archiveBooksService } from '../services/archive-books.service';
 import type { BookSummary } from '../types/archive-books.types';
 import { normalizeError } from '../utils/errors';
 
@@ -55,7 +55,10 @@ export default function HomePage() {
         const response = await archiveBooksService.searchByGenres(genres, 0);
         if (!cancelled) setRecommendations(response.results.slice(0, 10));
       } catch (caught) {
-        if (!cancelled) setRecommendationsError(normalizeError(caught).message);
+        const normalized = normalizeError(caught);
+        if (!cancelled && normalized.code !== SEARCH_ABORTED_CODE) {
+          setRecommendationsError(normalized.message);
+        }
       } finally {
         if (!cancelled) setRecommendationsLoading(false);
       }
@@ -77,6 +80,9 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
 
+  /** Época de la búsqueda vigente: evita que una petición abortada pise el estado nuevo. */
+  const searchEpoch = useRef(0);
+
   /** Handler estable para el callback de SearchBar (debounce interno). */
   const handleSearch = useCallback(async (q: string) => {
     setQuery(q);
@@ -90,34 +96,52 @@ export default function HomePage() {
       return;
     }
 
+    const epoch = ++searchEpoch.current;
     setLoading(true);
     try {
       const response = await archiveBooksService.searchBooks(q, 0);
+      if (searchEpoch.current !== epoch) {
+        return;
+      }
       setResults(response.results);
       setTotal(response.total);
       setPage(0);
       setSearched(true);
       analyticsService.track('book_searched', { query: q.trim(), resultCount: response.total });
     } catch (caught) {
-      setError(normalizeError(caught).message);
+      const normalized = normalizeError(caught);
+      if (normalized.code !== SEARCH_ABORTED_CODE && searchEpoch.current === epoch) {
+        setError(normalized.message);
+      }
     } finally {
-      setLoading(false);
+      if (searchEpoch.current === epoch) {
+        setLoading(false);
+      }
     }
   }, []);
 
   /** Carga la siguiente página de resultados. */
   const handleLoadMore = useCallback(async () => {
+    const epoch = ++searchEpoch.current;
     const nextPage = page + 1;
     setLoading(true);
     try {
       const response = await archiveBooksService.searchBooks(query, nextPage);
+      if (searchEpoch.current !== epoch) {
+        return;
+      }
       setResults((previous) => [...previous, ...response.results]);
       setTotal(response.total);
       setPage(nextPage);
     } catch (caught) {
-      setError(normalizeError(caught).message);
+      const normalized = normalizeError(caught);
+      if (normalized.code !== SEARCH_ABORTED_CODE && searchEpoch.current === epoch) {
+        setError(normalized.message);
+      }
     } finally {
-      setLoading(false);
+      if (searchEpoch.current === epoch) {
+        setLoading(false);
+      }
     }
   }, [query, page]);
 
@@ -195,9 +219,9 @@ export default function HomePage() {
               className="inline-flex min-h-[48px] items-center gap-2 rounded-[10px] border-[1.5px] border-outline-variant px-4 py-2 text-sm font-medium text-on-surface transition hover:bg-surface-container-low"
             >
               <span aria-hidden="true" className="material-symbols-outlined text-lg text-primary">
-                near_me
+                auto_awesome
               </span>
-              Libros cerca de mí
+              Libros recomendados
             </Link>
           </div>
         </section>

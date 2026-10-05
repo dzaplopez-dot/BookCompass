@@ -10,7 +10,7 @@ PWA de descubrimiento literario con la API de **Internet Archive**, autenticaci�
 - **Firebase 12.18** (Auth · Firestore · Cloud Messaging) · **react-router-dom 7**
 - **Leaflet** (mapa open-source, sin clave) · **ESLint 10** flat + **Prettier**
 
-> 🚫 **Sin tests automatizados en esta etapa MVP** (decisión vigente): la calidad se valida con prueba manual + `npm run format && npm run lint && npm run build`.
+> **Sin tests automatizados en esta etapa MVP** (decisión vigente): la calidad se valida con prueba manual + `npm run format && npm run lint && npm run build`.
 
 ## Decisiones vigentes
 

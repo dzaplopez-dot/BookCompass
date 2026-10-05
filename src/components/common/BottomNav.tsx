@@ -1,7 +1,7 @@
 /**
  * Barra de navegación inferior estilo Stitch.
  *
- * Tres destinos fijos (Mapa / Buscar / Perfil) con iconos Material Symbols.
+ * Tres destinos fijos (Recomendados / Buscar / Perfil) con iconos Material Symbols.
  * El destino activo se pinta en `primary`; los inactivos en
  * `on-surface-variant`. Solo cambia clases visuales, la navegación la
  * resuelve `react-router-dom`.
@@ -22,7 +22,7 @@ interface BottomNavItem {
 
 /** Los tres destinos principales de la app. */
 const ITEMS: BottomNavItem[] = [
-  { to: '/map', label: 'Mapa', icon: 'map', matchPrefix: '/map' },
+  { to: '/cerca', label: 'Recomendados', icon: 'auto_awesome', matchPrefix: '/cerca' },
   { to: '/home', label: 'Buscar', icon: 'search', matchPrefix: '/home' },
   { to: '/perfil', label: 'Perfil', icon: 'person', matchPrefix: '/perfil' },
 ];

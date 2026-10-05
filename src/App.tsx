@@ -19,7 +19,6 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import GenresOnboardingPage from './pages/GenresOnboardingPage';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
-import MapPage from './pages/MapPage';
 import NearbyPage from './pages/NearbyPage';
 import ProfilePage from './pages/ProfilePage';
 import RegisterPage from './pages/RegisterPage';
@@ -77,14 +76,6 @@ export default function App() {
                 element={
                   <PrivateRoute>
                     <BookDetailPage />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/map"
-                element={
-                  <PrivateRoute>
-                    <MapPage />
                   </PrivateRoute>
                 }
               />

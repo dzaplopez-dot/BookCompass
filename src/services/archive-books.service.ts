@@ -59,6 +59,15 @@ const EMPTY_RESULT_TTL_MS = 1 * 60 * 1_000;
 /** Número máximo de entradas en la caché (FIFO). */
 const MAX_CACHE_ENTRIES = 50;
 
+/**
+ * Código de error para peticiones canceladas por una búsqueda más reciente.
+ * La UI debe ignorarlo en silencio (no es un fallo visible al usuario).
+ */
+export const SEARCH_ABORTED_CODE = 'app/aborted';
+
+/** Operaciones con cancelación: una nueva llamada aborta la anterior. */
+type AbortableOperation = 'free' | 'genres' | 'city';
+
 /** Entrada de caché con marca de expiración. */
 interface CacheEntry<T> {
   data: T;
@@ -78,6 +87,8 @@ function cacheKey(query: string, page: number): string {
 export class ArchiveBooksService {
   private cache = new Map<string, CacheEntry<unknown>>();
   private ttlMs: number;
+  /** Controladores de cancelación por operación (la nueva llamada aborta la anterior). */
+  private abortControllers = new Map<AbortableOperation, AbortController>();
 
   /**
    * @param ttlMs Tiempo de vida de la caché en milisegundos (por defecto 5 min).
@@ -87,14 +98,29 @@ export class ArchiveBooksService {
   }
 
   /**
+   * Aborta la petición anterior de la operación y devuelve la señal de la nueva.
+   *
+   * @param operation Operación que se va a lanzar.
+   * @returns Señal de cancelación de la nueva petición.
+   */
+  private renewAbortController(operation: AbortableOperation): AbortSignal {
+    this.abortControllers.get(operation)?.abort();
+    const controller = new AbortController();
+    this.abortControllers.set(operation, controller);
+    return controller.signal;
+  }
+
+  /**
    * Busca libros por título o autor con paginación.
    *
    * @param query Término de búsqueda libre.
    * @param page  Página deseada (0-indexed; por defecto 0).
+   * @param signal Señal opcional para cancelar (p. ej. fan-out de ámbitos).
+   *   Sin señal se aborta la búsqueda libre anterior automáticamente.
    * @returns Resultado paginado con libros normalizados.
    * @throws AppError si la petición falla tras los reintentos.
    */
-  async searchBooks(query: string, page = 0): Promise<SearchResult> {
+  async searchBooks(query: string, page = 0, signal?: AbortSignal): Promise<SearchResult> {
     const trimmed = query.trim();
     if (trimmed.length === 0) {
       return { total: 0, page: 0, results: [] };
@@ -106,7 +132,8 @@ export class ArchiveBooksService {
       return cached.data as SearchResult;
     }
 
-    const result = await this.fetchWithRetries(trimmed, page);
+    const effectiveSignal = signal ?? this.renewAbortController('free');
+    const result = await this.fetchWithRetries(trimmed, page, 'free', effectiveSignal);
 
     const ttl = result.results.length === 0 ? EMPTY_RESULT_TTL_MS : this.ttlMs;
     this.store(key, { data: result, expiresAt: Date.now() + ttl });
@@ -123,10 +150,12 @@ export class ArchiveBooksService {
    *
    * @param genreIds Identificadores de género (`LITERARY_GENRES[].id`).
    * @param page     Página deseada (0-indexed; por defecto 0).
+   * @param signal Señal opcional para cancelar. Sin señal se aborta la
+   *   petición de géneros anterior automáticamente.
    * @returns Resultado paginado con libros normalizados.
    * @throws AppError si la petición falla tras los reintentos.
    */
-  async searchByGenres(genreIds: string[], page = 0): Promise<SearchResult> {
+  async searchByGenres(genreIds: string[], page = 0, signal?: AbortSignal): Promise<SearchResult> {
     const genreClause = toGenreQuery(genreIds);
     if (genreClause.length === 0) {
       return { total: 0, page: 0, results: [] };
@@ -138,7 +167,11 @@ export class ArchiveBooksService {
       return cached.data as SearchResult;
     }
 
-    const result = await this.fetchGenresWithRetries(genreClause, page);
+    const result = await this.fetchGenresWithRetries(
+      genreClause,
+      page,
+      signal ?? this.renewAbortController('genres'),
+    );
 
     const ttl = result.results.length === 0 ? EMPTY_RESULT_TTL_MS : this.ttlMs;
     this.store(key, { data: result, expiresAt: Date.now() + ttl });
@@ -155,10 +188,13 @@ export class ArchiveBooksService {
    *
    * @param cityName Nombre de la ciudad/lugar a buscar.
    * @param page     Página deseada (0-indexed; por defecto 0).
+   * @param signal Señal opcional para cancelar (el fan-out de ámbitos de
+   *   `NearbyPage` comparte una sola señal para sus llamadas en paralelo).
+   *   Sin señal se aborta la búsqueda por ciudad anterior automáticamente.
    * @returns Resultado paginado con libros normalizados.
    * @throws AppError si la petición falla tras los reintentos.
    */
-  async searchBooksByCity(cityName: string, page = 0): Promise<SearchResult> {
+  async searchBooksByCity(cityName: string, page = 0, signal?: AbortSignal): Promise<SearchResult> {
     const city = cityName.trim();
     if (city.length === 0) {
       return { total: 0, page: 0, results: [] };
@@ -177,7 +213,12 @@ export class ArchiveBooksService {
       return cached.data as SearchResult;
     }
 
-    const result = await this.fetchWithRetries(city, page, 'city');
+    const result = await this.fetchWithRetries(
+      city,
+      page,
+      'city',
+      signal ?? this.renewAbortController('city'),
+    );
 
     const ttl = result.results.length === 0 ? EMPTY_RESULT_TTL_MS : this.ttlMs;
     this.store(key, { data: result, expiresAt: Date.now() + ttl });
@@ -189,7 +230,11 @@ export class ArchiveBooksService {
    * Realiza una petición por géneros con reintentos (misma política que la
    * búsqueda libre: 429 respeta Retry-After; 5xx/red usa backoff exponencial).
    */
-  private async fetchGenresWithRetries(genreClause: string, page: number): Promise<SearchResult> {
+  private async fetchGenresWithRetries(
+    genreClause: string,
+    page: number,
+    signal?: AbortSignal,
+  ): Promise<SearchResult> {
     const start = page * PAGE_SIZE;
     const searchQuery = `${genreClause} AND ${BOOKS_FILTER}`;
     const url = `${BASE_URL}?q=${encodeURIComponent(searchQuery)}&fl[]=${SEARCH_FIELDS.split(',').join('&fl[]=')}&output=json&rows=${PAGE_SIZE}&start=${start}`;
@@ -197,11 +242,15 @@ export class ArchiveBooksService {
     let lastError: unknown;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      throwIfAborted(signal);
       try {
-        return await rateLimiter.enqueue(() => this.executeRequest(url));
+        return await rateLimiter.enqueue(() => this.executeRequest(url, signal));
       } catch (error) {
         lastError = error;
 
+        if (signal?.aborted || isAbortError(error)) {
+          throw abortedError();
+        }
         if (error instanceof AppError) {
           if (error.code === 'archive/too-many-requests') {
             const waitMs = parseRetryAfter(error) ?? BASE_RETRY_DELAY_MS * 2 ** attempt;
@@ -233,11 +282,13 @@ export class ArchiveBooksService {
    * @param page  Página deseada (0-indexed).
    * @param mode  `'free'` (por defecto) busca en título/autor; `'city'` busca
    *              en título y subject (para la vista de libros cerca).
+   * @param signal Señal opcional para cancelar la petición.
    */
   private async fetchWithRetries(
     query: string,
     page: number,
     mode: 'free' | 'city' = 'free',
+    signal?: AbortSignal,
   ): Promise<SearchResult> {
     const start = page * PAGE_SIZE;
     // Búsqueda por título y autor, filtrada solo a libros de biblioteca.
@@ -250,11 +301,15 @@ export class ArchiveBooksService {
     let lastError: unknown;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      throwIfAborted(signal);
       try {
-        return await rateLimiter.enqueue(() => this.executeRequest(url));
+        return await rateLimiter.enqueue(() => this.executeRequest(url, signal));
       } catch (error) {
         lastError = error;
 
+        if (signal?.aborted || isAbortError(error)) {
+          throw abortedError();
+        }
         if (error instanceof AppError) {
           if (error.code === 'archive/too-many-requests') {
             // 429: espera el tiempo indicado por Retry-After antes de reintentar.
@@ -281,14 +336,18 @@ export class ArchiveBooksService {
   }
 
   /** Ejecuta una petición HTTP individual contra la API. */
-  private async executeRequest(url: string): Promise<SearchResult> {
+  private async executeRequest(url: string, signal?: AbortSignal): Promise<SearchResult> {
     let response: Response;
 
     try {
       response = await fetch(url, {
         headers: { Accept: 'application/json' },
+        signal,
       });
     } catch {
+      if (signal?.aborted) {
+        throw abortedError();
+      }
       throw new AppError('app/network-error', 'Error de red. Comprueba tu conexión a internet.');
     }
 
@@ -485,6 +544,28 @@ function parseRetryAfter(error: AppError): number | null {
 /** Espera asíncrona el número de milisegundos indicado. */
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Error silencioso para peticiones canceladas (la UI lo ignora). */
+function abortedError(): AppError {
+  return new AppError(SEARCH_ABORTED_CODE, 'Búsqueda cancelada por una petición más reciente.');
+}
+
+/** Lanza `abortedError` si la señal ya fue cancelada. */
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw abortedError();
+  }
+}
+
+/** Detecta si el fallo proviene de una cancelación nativa del `fetch`. */
+function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    (error as { name: unknown }).name === 'AbortError'
+  );
 }
 
 /** Instancia única del servicio de Internet Archive Books para toda la aplicación. */

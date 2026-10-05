@@ -158,25 +158,6 @@ export default function ProfilePage(): ReactElement {
           </div>
         </section>
 
-        {/* ─── Tema (visual, mantiene modo claro actual) ───────────────── */}
-        <section className="mt-4 flex items-center justify-between rounded-[12px] bg-surface-container-lowest p-4 shadow-card">
-          <span className="flex items-center gap-3 text-base font-semibold text-on-surface">
-            <span aria-hidden="true" className="material-symbols-outlined text-outline">
-              dark_mode
-            </span>
-            Tema: Claro / Oscuro
-          </span>
-          <span
-            role="switch"
-            aria-checked="false"
-            aria-label="Tema oscuro (próximamente)"
-            title="Tema oscuro próximamente"
-            className="flex h-8 w-14 items-center rounded-full bg-surface-container-highest px-1"
-          >
-            <span className="h-6 w-6 rounded-full bg-surface-container-lowest shadow-card" />
-          </span>
-        </section>
-
         {/* ─── Edición del nombre ───────────────────────────────────────── */}
         <section className="mt-4 rounded-[12px] bg-surface-container-lowest p-6 shadow-card">
           <h3 className="font-display text-lg font-bold text-on-surface">Editar perfil</h3>

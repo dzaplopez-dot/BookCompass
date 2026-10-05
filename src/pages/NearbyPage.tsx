@@ -1,5 +1,5 @@
 /**
- * Página «Libros cerca de ti».
+ * Página «Libros recomendados».
  *
  * Le pide al usuario su permiso de ubicación, traduce las coordenadas al
  * nombre de la ciudad (geocodificación inversa con Nominatim) y busca en
@@ -14,13 +14,13 @@
  * 3. Sin permiso concedido / error: mensaje con opción a reintentar.
  * 4. Resultados: lista de BookCard con paginación.
  */
-import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { BookCard } from '../components/books/BookCard';
 import { BottomNav } from '../components/common/BottomNav';
 import { Spinner } from '../components/common/Spinner';
 import { MapView, type MapMarker } from '../components/map/MapView';
-import { archiveBooksService } from '../services/archive-books.service';
+import { SEARCH_ABORTED_CODE, archiveBooksService } from '../services/archive-books.service';
 import { bookMarkersService } from '../services/book-markers.service';
 import { geocoderService } from '../services/geocoder.service';
 import type { BookSummary } from '../types/archive-books.types';
@@ -110,6 +110,11 @@ export default function NearbyPage(): ReactElement {
   // Libro resaltado al pulsar su marcador en el mapa.
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  /** Época de la petición vigente: evita estados cruzados entre reintentos. */
+  const requestEpoch = useRef(0);
+  /** Controlador del fan-out de ámbitos en curso (se aborta al relanzar). */
+  const fanOutAbort = useRef<AbortController | null>(null);
+
   // Carga los marcadores de la comunidad al montar (degrada a demos si falla).
   useEffect(() => {
     let cancelled = false;
@@ -127,6 +132,13 @@ export default function NearbyPage(): ReactElement {
     void loadMarkers();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  // Al desmontar, cancela el fan-out en curso para no actualizar estado tarde.
+  useEffect(() => {
+    return () => {
+      fanOutAbort.current?.abort();
     };
   }, []);
 
@@ -149,6 +161,7 @@ export default function NearbyPage(): ReactElement {
 
   /** Obtiene la ubicación, la ciudad y desencadena la búsqueda de libros. */
   const handleShareLocation = useCallback(async () => {
+    const epoch = ++requestEpoch.current;
     setResolving(true);
     setLocationError(null);
 
@@ -156,8 +169,10 @@ export default function NearbyPage(): ReactElement {
     try {
       position = await getCurrentPosition();
     } catch (caught) {
-      setResolving(false);
-      setLocationError(toLocationErrorMessage(caught));
+      if (requestEpoch.current === epoch) {
+        setResolving(false);
+        setLocationError(toLocationErrorMessage(caught));
+      }
       return;
     }
 
@@ -178,8 +193,10 @@ export default function NearbyPage(): ReactElement {
         throw new Error('No se pudo determinar la ciudad desde tu ubicación.');
       }
     } catch (caught) {
-      setResolving(false);
-      setLocationError(normalizeError(caught).message);
+      if (requestEpoch.current === epoch) {
+        setResolving(false);
+        setLocationError(normalizeError(caught).message);
+      }
       return;
     }
 
@@ -188,25 +205,41 @@ export default function NearbyPage(): ReactElement {
     setSearching(true);
     setSearchError(null);
 
-    // Prueba cada ámbito en orden y se queda con el primero que tenga libros.
-    // Así un pueblo sin libros muestra los de su región o país en vez de vacío.
+    // Fan-out en paralelo: lanza todos los ámbitos a la vez y se queda con
+    // el primero (ciudad → región → país) que tenga libros. El RateLimiter
+    // permite hasta 3 en vuelo, así que el peor caso cuesta ~1 latencia.
+    fanOutAbort.current?.abort();
+    const fanOut = new AbortController();
+    fanOutAbort.current = fanOut;
+
     let matchedScope = detected;
     let matchedTotal = 0;
     let matchedResults: BookSummary[] = [];
     try {
-      for (const scope of scopes) {
-        const response = await archiveBooksService.searchBooksByCity(scope, 0);
-        if (response.total > 0) {
-          matchedScope = scope;
-          matchedTotal = response.total;
-          matchedResults = response.results;
+      const settled = await Promise.allSettled(
+        scopes.map(async (scope, index) => ({
+          index,
+          result: await archiveBooksService.searchBooksByCity(scope, 0, fanOut.signal),
+        })),
+      );
+      const fulfilled = settled
+        .flatMap((outcome) => (outcome.status === 'fulfilled' ? [outcome.value] : []))
+        .sort((a, b) => a.index - b.index);
+      for (const { index, result } of fulfilled) {
+        if (result.total > 0) {
+          matchedScope = scopes[index] ?? detected;
+          matchedTotal = result.total;
+          matchedResults = result.results;
           break;
         }
         // Guarda el primer intento (ciudad) por si ningún ámbito tiene libros.
-        if (scope === detected) {
-          matchedTotal = response.total;
-          matchedResults = response.results;
+        if (index === 0) {
+          matchedTotal = result.total;
+          matchedResults = result.results;
         }
+      }
+      if (fanOut.signal.aborted || requestEpoch.current !== epoch) {
+        return;
       }
       setLocation({
         name: matchedScope,
@@ -219,33 +252,52 @@ export default function NearbyPage(): ReactElement {
       setTotal(matchedTotal);
       setPage(0);
     } catch (caught) {
-      setSearchError(normalizeError(caught).message);
+      const normalized = normalizeError(caught);
+      if (normalized.code === SEARCH_ABORTED_CODE || fanOut.signal.aborted) {
+        return;
+      }
+      if (requestEpoch.current !== epoch) {
+        return;
+      }
+      setSearchError(normalized.message);
       setResults([]);
       setTotal(0);
     } finally {
-      setSearching(false);
+      if (requestEpoch.current === epoch) {
+        setResolving(false);
+        setSearching(false);
+      }
     }
   }, []);
 
   /** Carga la siguiente página de resultados de la ciudad. */
   const handleLoadMore = useCallback(async () => {
-    if (!location) {
+    if (!location || searching || resolving) {
       return;
     }
+    const epoch = ++requestEpoch.current;
     const nextPage = page + 1;
     setSearching(true);
     setSearchError(null);
     try {
       const response = await archiveBooksService.searchBooksByCity(location.name, nextPage);
+      if (requestEpoch.current !== epoch) {
+        return;
+      }
       setResults((previous) => [...previous, ...response.results]);
       setTotal(response.total);
       setPage(nextPage);
     } catch (caught) {
-      setSearchError(normalizeError(caught).message);
+      const normalized = normalizeError(caught);
+      if (normalized.code !== SEARCH_ABORTED_CODE && requestEpoch.current === epoch) {
+        setSearchError(normalized.message);
+      }
     } finally {
-      setSearching(false);
+      if (requestEpoch.current === epoch) {
+        setSearching(false);
+      }
     }
-  }, [location, page]);
+  }, [location, page, searching, resolving]);
 
   const hasMore = (page + 1) * 12 < total;
 
@@ -263,21 +315,9 @@ export default function NearbyPage(): ReactElement {
           </span>
         </Link>
         <h1 className="font-display text-[22px] font-bold tracking-tight text-primary md:text-2xl">
-          Cerca de ti
+          Libros recomendados
         </h1>
-        {location ? (
-          <Link
-            to="/map"
-            aria-label="Ver en el mapa"
-            className="text-primary transition hover:opacity-80 active:scale-95"
-          >
-            <span aria-hidden="true" className="material-symbols-outlined text-2xl">
-              map
-            </span>
-          </Link>
-        ) : (
-          <span className="w-6" aria-hidden="true" />
-        )}
+        <span className="w-6" aria-hidden="true" />
       </header>
 
       <main className="mx-auto max-w-6xl px-5 pt-4 md:px-10">
@@ -290,11 +330,11 @@ export default function NearbyPage(): ReactElement {
               </span>
             </div>
             <h2 className="mt-8 font-display text-3xl font-bold leading-tight text-on-surface">
-              Descubre libros a tu alrededor
+              Descubre libros según tu ubicación
             </h2>
             <p className="mt-3 max-w-md text-base leading-relaxed text-on-surface-variant">
-              Permítenos saber dónde estás para recomendarte libros cerca de ti. Solo usamos tu
-              ciudad para buscar y nunca la guardamos.
+              Permítenos saber dónde estás para recomendarte libros según tu ubicación. Solo usamos
+              tu ciudad para buscar y nunca la guardamos.
             </p>
             {locationError ? (
               <p
@@ -438,12 +478,6 @@ export default function NearbyPage(): ReactElement {
                       >
                         Intentar de nuevo
                       </button>
-                      <Link
-                        to="/map"
-                        className="flex min-h-[48px] items-center rounded-[10px] border-[1.5px] border-outline-variant px-6 py-3 text-sm font-medium text-on-surface transition hover:bg-surface-container-low"
-                      >
-                        Ver el mapa
-                      </Link>
                     </div>
                   </div>
                 ) : null}
